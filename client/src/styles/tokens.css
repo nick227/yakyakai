@@ -1,0 +1,93 @@
+:root {
+  /* Identity */
+  --brand-name: 'Yakyakai';
+
+  /* Color */
+  --color-bg: #0b0d10;
+  --color-surface: #11151b;
+  --color-surface-2: #171c24;
+  --color-surface-3: #202633;
+
+  --color-text: #f4f0e8;
+  --color-text-soft: #cfc7ba;
+  --color-text-muted: #8f98a8;
+
+  --color-line: rgba(244, 240, 232, 0.11);
+  --color-line-strong: rgba(244, 240, 232, 0.18);
+
+  --color-accent: #d7b46a;
+  --color-accent-soft: rgba(215, 180, 106, 0.14);
+  --color-accent-line: rgba(215, 180, 106, 0.32);
+
+  --color-danger: #e88383;
+  --color-danger-soft: rgba(232, 131, 131, 0.12);
+  --color-success: #9ccf9a;
+  --color-success-soft: rgba(156, 207, 154, 0.12);
+
+  /* Typography */
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.35rem;
+  --text-2xl: clamp(1.65rem, 3vw, 2.25rem);
+
+  --line-tight: 1.15;
+  --line-normal: 1.5;
+  --line-relaxed: 1.7;
+
+  /* Spacing */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-7: 1.75rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+
+  /* Radius */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-pill: 999px;
+
+  /* Layout */
+  --page-max: 1180px;
+  --panel-max: 780px;
+  --topbar-h: 56px;
+  --control-h: 44px;
+
+  /* Motion */
+  --ease-standard: cubic-bezier(.2, .8, .2, 1);
+  --duration-fast: 120ms;
+  --duration-med: 190ms;
+
+  /* Focus */
+  --focus-ring: 0 0 0 3px rgba(215, 180, 106, 0.22);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --color-bg: #f7f3eb;
+    --color-surface: #fffaf1;
+    --color-surface-2: #f1eadf;
+    --color-surface-3: #e9dfcf;
+
+    --color-text: #15130f;
+    --color-text-soft: #4d453a;
+    --color-text-muted: #756c5d;
+
+    --color-line: rgba(21, 19, 15, 0.12);
+    --color-line-strong: rgba(21, 19, 15, 0.2);
+
+    --color-accent-soft: rgba(143, 99, 26, 0.12);
+    --color-accent-line: rgba(143, 99, 26, 0.32);
+  }
+}

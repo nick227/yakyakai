@@ -1,0 +1,172 @@
+.app-shell {
+  min-height: 100vh;
+}
+
+.center-page {
+  width: min(100% - var(--space-4), var(--panel-max));
+  min-height: calc(100vh - var(--topbar-h));
+  margin-inline: auto;
+  display: grid;
+  align-content: center;
+  gap: var(--space-6);
+  padding-block: var(--space-8);
+}
+
+.chat-shell {
+  width: min(100%, 920px);
+  height: calc(100vh - var(--topbar-h));
+  margin-inline: auto;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  overflow: hidden;
+}
+
+.stream-column {
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-8) var(--space-4) 12rem;
+  scrollbar-gutter: stable;
+}
+
+.chat-stream {
+  display: grid;
+  gap: var(--space-5);
+  max-width: 760px;
+  margin-inline: auto;
+}
+
+.composer-dock {
+  position: sticky;
+  bottom: 0;
+  z-index: 15;
+  padding: var(--space-4);
+  background:
+    linear-gradient(to top, var(--color-bg) 74%, color-mix(in srgb, var(--color-bg) 0%, transparent));
+}
+
+.composer-shell {
+  width: min(100%, 760px);
+  margin-inline: auto;
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-xl);
+  background: color-mix(in srgb, var(--color-surface) 96%, transparent);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.22);
+  overflow: hidden;
+}
+
+.composer-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  border-top: 1px solid var(--color-line);
+  padding: var(--space-3);
+}
+
+.pace-cluster,
+.run-actions {
+  min-width: 0;
+}
+
+.page {
+  width: min(100% - var(--space-4), var(--page-max));
+  margin-inline: auto;
+}
+
+.page-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-5);
+  padding-block: var(--space-5) var(--space-8);
+}
+
+@media (min-width: 960px) {
+  .page-grid {
+    grid-template-columns: minmax(0, 1fr) 320px;
+    align-items: start;
+    gap: var(--space-6);
+    padding-block: var(--space-7) var(--space-10);
+  }
+}
+
+.main-stack {
+  display: grid;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+.side-stack {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.panel {
+  border: 1px solid var(--color-line);
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  border-radius: var(--radius-xl);
+}
+
+.panel-inner {
+  padding: var(--space-4);
+}
+
+@media (min-width: 720px) {
+  .panel-inner {
+    padding: var(--space-5);
+  }
+}
+
+.stack {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.row-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.cluster {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+@media (max-width: 720px) {
+  .center-page {
+    align-content: start;
+    padding-block: var(--space-6);
+  }
+
+  .chat-shell {
+    width: 100%;
+  }
+
+  .stream-column {
+    padding: var(--space-6) var(--space-3) 13rem;
+  }
+
+  .composer-dock {
+    padding: var(--space-3);
+  }
+
+  .composer-footer {
+    align-items: stretch;
+  }
+
+  .pace-cluster,
+  .run-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

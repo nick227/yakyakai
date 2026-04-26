@@ -1,0 +1,43 @@
+enum JobStatus {
+  queued
+  running
+  paused
+  complete
+  failed
+  cancelled
+}
+
+model Job {
+  id          String   @id @default(cuid())
+  userId      String?
+  sessionId   String?
+  type        String
+  status      JobStatus @default(queued)
+  priority    Int      @default(0)
+  payloadJson String
+  progress    Int      @default(0)
+  currentStep Int      @default(0)
+  attempts    Int      @default(0)
+  maxAttempts Int      @default(3)
+  lockedAt    DateTime?
+  lockedBy    String?
+  runAt       DateTime @default(now())
+  lastError   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status, runAt])
+  @@index([lockedAt])
+  @@index([userId, createdAt])
+}
+
+model JobEvent {
+  id        String   @id @default(cuid())
+  jobId      String
+  type      String
+  message   String?
+  metaJson  String?
+  createdAt DateTime @default(now())
+
+  @@index([jobId, createdAt])
+}

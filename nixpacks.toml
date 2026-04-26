@@ -1,0 +1,12 @@
+[phases.install]
+cmds = [
+  "npm ci",
+  "npm ci --prefix server",
+  "npm ci --prefix client"
+]
+
+[phases.build]
+cmds = [
+  "npm run build --prefix client",
+  "npm run prisma:generate --prefix server"
+]

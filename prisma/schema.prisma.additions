@@ -1,0 +1,79 @@
+// Merge these models/enums into your existing prisma/schema.prisma.
+// Keep your existing datasource/generator blocks.
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum UserPlan {
+  FREE
+  PRO
+  TEAM
+}
+
+enum UsageStatus {
+  STARTED
+  SUCCESS
+  ESTIMATED
+  FAILED
+  CANCELLED
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  name         String?
+  passwordHash String
+  role         UserRole      @default(USER)
+  plan         UserPlan      @default(FREE)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  sessions     AiSession[]
+  usageLedger  UsageLedger[]
+}
+
+model AiSession {
+  id             String        @id @default(cuid())
+  userId         String
+  title          String?
+  originalPrompt String
+  status         String        @default("created")
+  promptCount    Int           @default(0)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  usageLedger    UsageLedger[]
+
+  @@index([userId, createdAt])
+}
+
+model UsageLedger {
+  id                      String      @id @default(cuid())
+  userId                  String
+  sessionId               String?
+  jobId                   String?
+  phase                   String
+  model                   String?
+  promptPreview           String?
+  promptChars             Int         @default(0)
+  estimatedPromptTokens   Int         @default(0)
+  actualPromptTokens      Int?
+  actualCompletionTokens  Int?
+  actualTotalTokens       Int?
+  status                  UsageStatus @default(STARTED)
+  errorCode               String?
+  errorMessage            String?
+  durationMs              Int?
+  createdAt               DateTime    @default(now())
+
+  user                    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session                 AiSession?  @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([sessionId, createdAt])
+  @@index([phase])
+  @@index([status])
+}

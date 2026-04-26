@@ -1,0 +1,61 @@
+// Merge into schema.prisma.
+
+model PromptAnalysis {
+  id              String   @id @default(cuid())
+  userId          String?
+  sessionId       String?
+  prompt          String
+  category        String?
+  qualityScore    Int      @default(0)
+  distinctScore   Int      @default(0)
+  tokenRiskScore  Int      @default(0)
+  duplicationRisk Int      @default(0)
+  issuesJson      String   @default("[]")
+  suggestionsJson String   @default("[]")
+  createdAt       DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([sessionId])
+}
+
+model SessionMemory {
+  id             String   @id @default(cuid())
+  sessionId      String
+  summary        String
+  factsJson       String   @default("[]")
+  decisionsJson  String   @default("[]")
+  openLoopsJson  String   @default("[]")
+  sourceCount    Int      @default(0)
+  tokenEstimate  Int      @default(0)
+  createdAt      DateTime @default(now())
+
+  @@index([sessionId, createdAt])
+}
+
+model RunAnalytics {
+  id              String   @id @default(cuid())
+  userId          String?
+  sessionId       String?
+  eventType       String
+  value           Int?
+  metaJson        String   @default("{}")
+  createdAt       DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([sessionId, createdAt])
+  @@index([eventType])
+}
+
+model SavedOutput {
+  id          String   @id @default(cuid())
+  userId      String?
+  sessionId   String?
+  title       String
+  format      String   @default("markdown")
+  body        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([sessionId])
+}

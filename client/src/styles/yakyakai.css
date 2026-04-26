@@ -1,0 +1,407 @@
+/* ── Hero / empty state ──────────────────────────────────── */
+
+.page-yakyakai .hero-eyebrow {
+  color: var(--color-accent);
+  font-size: var(--text-sm);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.page-yakyakai .hero-title {
+  max-width: 680px;
+  margin: 0;
+  font-size: var(--text-2xl);
+  line-height: var(--line-tight);
+  letter-spacing: -0.045em;
+}
+
+.page-yakyakai .hero-copy {
+  max-width: 580px;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-md);
+  line-height: var(--line-relaxed);
+}
+
+/* ── Topbar ─────────────────────────────────────────────── */
+
+.page-yakyakai .topbar-actions {
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.page-yakyakai .status-pill {
+  max-width: 200px;
+}
+
+/* ── Auth page ──────────────────────────────────────────── */
+
+.page-yakyakai .auth-page {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.page-yakyakai .auth-panel {
+  width: min(100%, 420px);
+  margin-inline: auto;
+}
+
+@media (min-width: 860px) {
+  .page-yakyakai .auth-page {
+    grid-template-columns: minmax(0, 1fr) 420px;
+    align-items: center;
+  }
+
+  .page-yakyakai .auth-page .empty-state {
+    justify-items: start;
+    text-align: left;
+  }
+}
+
+/* ── Empty / splash states ──────────────────────────────── */
+
+.page-yakyakai .empty-state {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+  text-align: center;
+}
+
+.page-yakyakai .chat-empty {
+  min-height: 46vh;
+  align-content: center;
+  max-width: 680px;
+  margin-inline: auto;
+  padding-inline: var(--space-4);
+}
+
+.page-yakyakai .chat-loading {
+  min-height: 46vh;
+  align-content: center;
+  animation: yakyakai-loading-rise 320ms var(--ease-standard) both;
+}
+
+.page-yakyakai .loading-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  animation: yakyakai-loading-breathe 1.8s var(--ease-standard) infinite;
+}
+
+.page-yakyakai .loading-label {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.page-yakyakai .loading-more {
+  width: fit-content;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-self: center;
+  gap: var(--space-2);
+  margin: 0 auto var(--space-2);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-surface) 82%, transparent);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  backdrop-filter: blur(10px);
+  animation: yakyakai-loading-rise 260ms var(--ease-standard) both;
+}
+
+.page-yakyakai .loading-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.page-yakyakai .loading-dots span {
+  width: 5px;
+  height: 5px;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  opacity: 0.42;
+  animation: yakyakai-loading-dot 1.05s var(--ease-standard) infinite;
+}
+
+.page-yakyakai .loading-dots span:nth-child(2) {
+  animation-delay: 120ms;
+}
+
+.page-yakyakai .loading-dots span:nth-child(3) {
+  animation-delay: 240ms;
+}
+
+@keyframes yakyakai-loading-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes yakyakai-loading-breathe {
+  0%, 100% {
+    opacity: 0.72;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-1px);
+  }
+}
+
+@keyframes yakyakai-loading-dot {
+  0%, 100% {
+    opacity: 0.32;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 0.9;
+    transform: translateY(-2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-yakyakai .chat-loading,
+  .page-yakyakai .loading-indicator,
+  .page-yakyakai .loading-more,
+  .page-yakyakai .loading-dots span {
+    animation: none;
+  }
+}
+
+.page-yakyakai .splash-page {
+  place-items: center;
+}
+
+.page-yakyakai .splash-mark {
+  width: 56px;
+  height: 56px;
+  animation: pulse-mark 2s var(--ease-standard) infinite;
+}
+
+@keyframes pulse-mark {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.6; transform: scale(0.93); }
+}
+
+/* ── Chat messages with avatar ──────────────────────────── */
+
+.page-yakyakai .chat-message,
+.page-yakyakai .plan-card {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: var(--space-3);
+  align-items: start;
+  padding: var(--space-5);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.page-yakyakai .msg-avatar {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-accent-line);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.page-yakyakai .msg-content {
+  min-width: 0;
+}
+
+.page-yakyakai .chat-message-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.page-yakyakai .chat-message-header strong {
+  color: var(--color-text);
+  font-size: var(--text-md);
+  letter-spacing: -0.015em;
+}
+
+.page-yakyakai .chat-message-body {
+  color: var(--color-text-soft);
+  font-size: var(--text-md);
+  line-height: var(--line-relaxed);
+}
+
+.page-yakyakai .chat-message-body :where(h1, h2, h3) {
+  margin-block: var(--space-5) var(--space-2);
+  color: var(--color-text);
+  line-height: var(--line-tight);
+  letter-spacing: -0.025em;
+}
+
+.page-yakyakai .chat-message-body :where(p, ul, ol, pre, blockquote) {
+  margin-block: 0 var(--space-3);
+}
+
+.page-yakyakai .chat-message-body :where(p, ul, ol, pre, blockquote):last-child {
+  margin-bottom: 0;
+}
+
+.page-yakyakai .chat-message-body pre {
+  overflow: auto;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  padding: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+/* ── Plan card ──────────────────────────────────────────── */
+
+.page-yakyakai .plan-card {
+  color: var(--color-text-soft);
+}
+
+.page-yakyakai .plan-card ol {
+  margin: 0;
+  padding-left: var(--space-5);
+  line-height: var(--line-relaxed);
+}
+
+/* ── Composer overrides ─────────────────────────────────── */
+
+.page-yakyakai .chat-input {
+  min-height: 100px;
+  max-height: 240px;
+  resize: none;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: var(--space-4);
+}
+
+.page-yakyakai .chat-input:disabled {
+  color: var(--color-text-muted);
+  cursor: default;
+}
+
+.page-yakyakai .composer-error {
+  border-width: 1px 0 0;
+  border-radius: 0;
+}
+
+/* ── Form helpers ───────────────────────────────────────── */
+
+.page-yakyakai .run-title {
+  margin: 0;
+  font-size: var(--text-xl);
+  letter-spacing: -0.03em;
+}
+
+.page-yakyakai .run-note {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+/* ── Admin ──────────────────────────────────────────────── */
+
+.page-yakyakai .admin-panel {
+  width: min(100%, 1040px);
+  margin-inline: auto;
+}
+
+.page-yakyakai .admin-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.page-yakyakai .admin-stat {
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-2);
+  padding: var(--space-4);
+}
+
+.page-yakyakai .admin-stat-value {
+  display: block;
+  color: var(--color-text);
+  font-size: var(--text-xl);
+  font-weight: 760;
+  line-height: var(--line-tight);
+}
+
+.page-yakyakai .admin-stat-label,
+.page-yakyakai .admin-name {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+
+.page-yakyakai .admin-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+}
+
+.page-yakyakai .admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 880px;
+  font-size: var(--text-sm);
+}
+
+.page-yakyakai .admin-table th,
+.page-yakyakai .admin-table td {
+  border-bottom: 1px solid var(--color-line);
+  padding: var(--space-3);
+  text-align: left;
+  vertical-align: top;
+}
+
+.page-yakyakai .admin-table th {
+  color: var(--color-text-muted);
+  font-weight: 620;
+}
+
+.page-yakyakai .admin-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.page-yakyakai .admin-email {
+  display: block;
+  color: var(--color-text);
+  font-weight: 620;
+}
+
+/* ── Responsive ─────────────────────────────────────────── */
+
+@media (max-width: 720px) {
+  .page-yakyakai .hero-title {
+    font-size: 1.6rem;
+  }
+
+  .page-yakyakai .admin-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .page-yakyakai .chat-message,
+  .page-yakyakai .plan-card {
+    grid-template-columns: 24px 1fr;
+    gap: var(--space-2);
+  }
+
+  .page-yakyakai .msg-avatar {
+    width: 24px;
+    height: 24px;
+  }
+}

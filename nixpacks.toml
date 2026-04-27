@@ -5,7 +5,7 @@ nixPkgs = ["nodejs_20"]
 cmds = [
   "npm ci",
   "npm ci --prefix server",
-  "npm install --prefix client"
+  "npm install --prefix client --legacy-peer-deps"
 ]
 
 [phases.build]

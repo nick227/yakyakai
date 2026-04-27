@@ -67,8 +67,8 @@
 }
 
 .page-yakyakai .chat-empty {
-  min-height: 46vh;
-  align-content: center;
+  min-height: 44vh;
+  align-content: flex-end;
   max-width: 680px;
   margin-inline: auto;
   padding-inline: var(--space-4);

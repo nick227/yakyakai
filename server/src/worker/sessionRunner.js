@@ -9,9 +9,9 @@ import { MAX_CYCLES } from './constants.js'
 import { buildCyclePlan, buildInitialPlan } from './planning.js'
 import { processPrompts } from './processing.js'
 
-async function isCancelled(sessionId) {
+async function getSessionStatus(sessionId) {
   const s = await prisma.aiSession.findUnique({ where: { id: sessionId }, select: { status: true } })
-  return s?.status === 'cancelled'
+  return s?.status ?? null
 }
 
 export async function runSessionJob(job, { publish }) {
@@ -33,13 +33,13 @@ export async function runSessionJob(job, { publish }) {
 
   let plan
   if (isFirstCycle) {
-    plan = await buildInitialPlan({ session, sessionId, jobId: job.id })
+    plan = await buildInitialPlan({ session, sessionId, jobId: job.id, publish })
     await prisma.aiSession.update({
       where: { id: sessionId },
       data: { title: plan.title, promptCount: plan.prompts.length },
     })
   } else {
-    plan = await buildCyclePlan({ session, sessionId, jobId: job.id, currentCycle })
+    plan = await buildCyclePlan({ session, sessionId, jobId: job.id, currentCycle, publish })
     await prisma.aiSession.update({ where: { id: sessionId }, data: { promptCount: plan.prompts.length } })
   }
 
@@ -54,8 +54,12 @@ export async function runSessionJob(job, { publish }) {
     plan,
     publish,
     addJobEvent,
-    isCancelled,
+    getSessionStatus,
   })
+  if (processed.paused) {
+    await publish(sessionId, EventTypes.STATUS, { status: 'paused', cycle: currentCycle })
+    return
+  }
   if (processed.stopped) {
     await publish(sessionId, EventTypes.STATUS, { status: 'stopped' })
     bus.cleanup(sessionId)

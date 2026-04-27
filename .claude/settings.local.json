@@ -12,7 +12,8 @@
       "Bash(node --input-type=module)",
       "Bash(npx prisma *)",
       "Bash(npm install *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(xargs grep *)"
     ]
   }
 }

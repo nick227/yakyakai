@@ -14,7 +14,11 @@ function parseEventMessage(message) {
   }
 }
 
-export function useSession(sessionId, onLoadSession, onEvent) {
+function isSessionAccessDenied(err) {
+  return err?.code === 'SESSION_ACCESS_DENIED' || err?.status === 401
+}
+
+export function useSession(sessionId, onLoadSession, onEvent, onSessionAccessDenied) {
   const [status, setStatus] = useState('idle')
   const [cycleCount, setCycleCount] = useState(0)
   const [nextDelay, setNextDelay] = useState(null)
@@ -34,6 +38,7 @@ export function useSession(sessionId, onLoadSession, onEvent) {
       })
       .catch((err) => {
         console.error('[loadSession] Failed to load session:', err.message)
+        if (isSessionAccessDenied(err)) onSessionAccessDenied?.()
       })
 
     const sse = new EventSource(api.eventsUrl(sessionId))

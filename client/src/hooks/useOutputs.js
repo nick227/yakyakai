@@ -44,6 +44,17 @@ export function useOutputs(riverRef, onScrollToBottom) {
           }]
         })
         break
+      case EventTypes.NOTICE:
+        console.log('[sse] Notice received:', ev.payload?.message)
+        setChatMessages((prev) => {
+          return [...prev, {
+            clientId: `notice-${ev.ts || Date.now()}`,
+            role: 'ASSISTANT',
+            content: ev.payload?.message || '',
+            metadata: JSON.stringify({ isNotice: true }),
+          }]
+        })
+        break
       default:
         break
     }

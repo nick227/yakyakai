@@ -46,10 +46,13 @@ const AppFrame = memo(function AppFrame({
                 className="avatar-button"
                 onClick={onLogout}
                 type="button"
-                title={`${user.email} — click to sign out`}
+                title={`${user.name || user.email} — click to sign out`}
                 aria-label="Sign out"
               >
-                {user.email?.[0]?.toUpperCase() ?? '?'}
+                {user.avatarUrl
+                  ? <img src={user.avatarUrl} alt={user.name || user.email} referrerPolicy="no-referrer" />
+                  : (user.name?.[0] || user.email?.[0])?.toUpperCase() ?? '?'
+                }
               </button>
             )}
           </div>

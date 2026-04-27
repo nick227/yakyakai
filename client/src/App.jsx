@@ -23,9 +23,14 @@ function App({ user, onLogout }) {
   const riverRef = useRef(null)
   const pendingScrollRef = useRef(null)
 
+  const clearStaleSession = useCallback(() => {
+    setSessionId(null)
+  }, [])
+
   const { chatMessages, hasMoreMessages, isLoadingMessages, handleScroll, setChatMessages } = useMessages(
     sessionId,
-    riverRef
+    riverRef,
+    clearStaleSession
   )
 
   const { outputs, plan, handleSSEEvent, reset: resetOutputs } = useOutputs(
@@ -38,7 +43,8 @@ function App({ user, onLogout }) {
   const { status, cycleCount, nextDelay, runError, setStatus, setRunError } = useSession(
     sessionId,
     (session) => setPace(session.pace),
-    (ev) => handleSSEEvent(ev, setChatMessages)
+    (ev) => handleSSEEvent(ev, setChatMessages),
+    clearStaleSession
   )
 
   useEffect(() => {

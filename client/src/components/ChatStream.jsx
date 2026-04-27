@@ -66,6 +66,7 @@ function EmptyChatState() {
 const ChatMessage = memo(function ChatMessage({ msg, index }) {
   const isUser = msg.role === 'USER'
   const metadata = msg.metadata ? JSON.parse(msg.metadata) : {}
+  const isNotice = metadata.isNotice
   
   if (isUser) {
     return (
@@ -73,6 +74,17 @@ const ChatMessage = memo(function ChatMessage({ msg, index }) {
         <div className="msg-avatar user-avatar" aria-hidden="true">U</div>
         <div className="msg-content">
           <div className="chat-message-body user-content">{msg.content}</div>
+        </div>
+      </article>
+    )
+  }
+  
+  if (isNotice) {
+    return (
+      <article className='chat-message notice-message'>
+        <div className="msg-avatar" aria-hidden="true"><Bot size={13} /></div>
+        <div className="msg-content">
+          <div className="chat-message-body notice-body">{msg.content}</div>
         </div>
       </article>
     )

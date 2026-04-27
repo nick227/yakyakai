@@ -9,4 +9,5 @@ export const EventTypes = Object.freeze({
   ERROR: 'error',
   MODIFICATION_START: 'modification-start',
   STOCK_MODIFICATION_START: 'stock-modification-start',
+  NOTICE: 'notice',
 })

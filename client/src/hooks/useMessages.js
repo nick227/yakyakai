@@ -6,7 +6,11 @@ const HISTORY_PAGE_SIZE = 49
 const HISTORY_LOAD_PAUSE_MS = 300
 const LOAD_MORE_TOP_PX = 100
 
-export function useMessages(sessionId, riverRef) {
+function isSessionAccessDenied(err) {
+  return err?.code === 'SESSION_ACCESS_DENIED' || err?.status === 401
+}
+
+export function useMessages(sessionId, riverRef, onSessionAccessDenied) {
   const [chatMessages, setChatMessages] = useState([])
   const [hasMoreMessages, setHasMoreMessages] = useState(false)
   const [isLoadingMessages, setIsLoadingMessages] = useState(false)
@@ -44,6 +48,7 @@ export function useMessages(sessionId, riverRef) {
     } catch (err) {
       pendingScrollRef.current = null
       console.error('[loadMessages] Failed to load messages:', err.message)
+      if (isSessionAccessDenied(err)) onSessionAccessDenied?.()
       return false
     } finally {
       isLoadingMessagesRef.current = false

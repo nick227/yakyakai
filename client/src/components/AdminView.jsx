@@ -2,14 +2,15 @@ import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import { post } from '../api/client.js'
 import { fmtTokens, timeAgo } from '../lib/format.js'
+import { RUN_STATUS } from '../lib/uiConstants.js'
 
 const ADMIN_STATUS = {
-  queued: 'Starting',
-  planning: 'Planning',
-  running: 'Exploring',
-  expanding: 'Expanding',
-  cycling: 'Between cycles',
-  paused: 'Paused',
+  [RUN_STATUS.QUEUED]: 'Starting',
+  [RUN_STATUS.PLANNING]: 'Planning',
+  [RUN_STATUS.RUNNING]: 'Exploring',
+  [RUN_STATUS.EXPANDING]: 'Expanding',
+  [RUN_STATUS.CYCLING]: 'Between cycles',
+  [RUN_STATUS.PAUSED]: 'Paused',
 }
 
 export default function AdminView({ onClose }) {

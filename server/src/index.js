@@ -90,34 +90,40 @@ if (process.env.NODE_ENV === 'production') {
 app.use(notFoundHandler)
 app.use(errorHandler)
 
-const server = app.listen(port, () => console.log(`YakyakAI server listening on http://localhost:${port}`))
+// Export app for testing
+export default app
 
-async function gracefulShutdown(signal) {
-  console.log(`\n${signal} received. Starting graceful shutdown...`)
-  
-  server.close(async (err) => {
-    if (err) {
-      console.error('Error closing HTTP server:', err)
-      process.exit(1)
-    }
+// Only start server if not in test mode
+if (process.env.NODE_ENV !== 'test') {
+  const server = app.listen(port, () => console.log(`YakyakAI server listening on http://localhost:${port}`))
+
+  async function gracefulShutdown(signal) {
+    console.log(`\n${signal} received. Starting graceful shutdown...`)
     
-    console.log('HTTP server closed')
+    server.close(async (err) => {
+      if (err) {
+        console.error('Error closing HTTP server:', err)
+        process.exit(1)
+      }
+      
+      console.log('HTTP server closed')
+      
+      try {
+        await prisma.$disconnect()
+        console.log('Database connection closed')
+        process.exit(0)
+      } catch (err) {
+        console.error('Error closing database connection:', err)
+        process.exit(1)
+      }
+    })
     
-    try {
-      await prisma.$disconnect()
-      console.log('Database connection closed')
-      process.exit(0)
-    } catch (err) {
-      console.error('Error closing database connection:', err)
+    setTimeout(() => {
+      console.error('Forced shutdown after timeout')
       process.exit(1)
-    }
-  })
-  
-  setTimeout(() => {
-    console.error('Forced shutdown after timeout')
-    process.exit(1)
-  }, 10000)
+    }, 10000)
+  }
+
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'))
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'))
 }
-
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'))
-process.on('SIGINT', () => gracefulShutdown('SIGINT'))

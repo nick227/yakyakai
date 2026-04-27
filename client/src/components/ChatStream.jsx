@@ -1,15 +1,48 @@
-import { memo, useRef } from 'react'
+import { memo, useMemo, useRef } from 'react'
 import { Bot, ListChecks } from 'lucide-react'
 import DOMPurify from 'dompurify'
-import { STATUS_LABELS } from '../lib/uiConstants.js'
+import { STATUS_LABELS, RUN_STATUS } from '../lib/uiConstants.js'
 
-const LOADING_STATUSES = new Set(['queued', 'planning', 'running', 'expanding', 'cycling'])
+const LOADING_STATUSES = new Set([
+  RUN_STATUS.QUEUED,
+  RUN_STATUS.PLANNING,
+  RUN_STATUS.RUNNING,
+  RUN_STATUS.EXPANDING,
+  RUN_STATUS.CYCLING,
+])
 
-const ChatStream = memo(function ChatStream({ outputs, chatMessages, plan, status, riverRef, onScroll, isLoadingMessages }) {
+const metadataCache = new Map()
+
+function parseMetadataSafe(raw) {
+  if (!raw) return {}
+  if (metadataCache.has(raw)) return metadataCache.get(raw)
+  try {
+    const parsed = JSON.parse(raw)
+    metadataCache.set(raw, parsed)
+    return parsed
+  } catch {
+    return {}
+  }
+}
+
+const ChatStream = memo(function ChatStream({ outputs, chatMessages, plan, status, riverRef, onScroll, isLoadingMessages, sessionNotFound, onNewChat }) {
   const internalRef = useRef(null)
   const ref = riverRef || internalRef
 
   const isLoading = chatMessages.length === 0 && LOADING_STATUSES.has(status)
+
+  const sortedMessages = useMemo(() => {
+    if (chatMessages.length <= 1) return chatMessages
+    const sorted = chatMessages.slice()
+    sorted.sort((a, b) => {
+      const ta = a.createdAt ? new Date(a.createdAt).getTime() : Infinity
+      const tb = b.createdAt ? new Date(b.createdAt).getTime() : Infinity
+      if (ta !== tb) return ta - tb
+      if (a.id && b.id) return a.id < b.id ? -1 : a.id > b.id ? 1 : 0
+      return 0
+    })
+    return sorted
+  }, [chatMessages])
 
   return (
     <section className="stream-column" ref={ref} onScroll={onScroll}>
@@ -23,14 +56,16 @@ const ChatStream = memo(function ChatStream({ outputs, chatMessages, plan, statu
           <span className="loading-label">Loading more messages</span>
         </div>
       )}
-      {isLoading ? (
+      {sessionNotFound ? (
+        <SessionNotFoundState onNewChat={onNewChat} />
+      ) : isLoading ? (
         <LoadingState status={status} />
-      ) : chatMessages.length === 0 ? (
+      ) : sortedMessages.length === 0 ? (
         <EmptyChatState />
       ) : (
         <div className="chat-stream">
           {plan && <PlanCard plan={plan} />}
-          {chatMessages.map((msg, i) => (
+          {sortedMessages.map((msg, i) => (
             <ChatMessage key={msg.id || msg.clientId || `${msg.role}-${msg.createdAt || i}`} msg={msg} index={i} />
           ))}
         </div>
@@ -63,9 +98,26 @@ function EmptyChatState() {
   )
 }
 
+function SessionNotFoundState({ onNewChat }) {
+  return (
+    <div className="empty-state chat-empty">
+      <div className="hero-eyebrow">Session not found</div>
+      <h1 className="hero-title">This chat doesn't exist.</h1>
+      <p className="hero-copy">
+        It may have been deleted, or the link is incorrect.
+      </p>
+      {onNewChat && (
+        <button type="button" className="button button-primary" onClick={onNewChat}>
+          Start new chat
+        </button>
+      )}
+    </div>
+  )
+}
+
 const ChatMessage = memo(function ChatMessage({ msg, index }) {
   const isUser = msg.role === 'USER'
-  const metadata = msg.metadata ? JSON.parse(msg.metadata) : {}
+  const metadata = parseMetadataSafe(msg.metadata)
   const isNotice = metadata.isNotice
   
   if (isUser) {

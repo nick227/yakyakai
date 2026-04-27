@@ -4,7 +4,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "npm run db:deploy --prefix server && npm run start:prod",
+    "startCommand": "npm run db:deploy --prefix server && npm run start --prefix server",
     "healthcheckPath": "/healthz",
     "healthcheckTimeout": 300
   }

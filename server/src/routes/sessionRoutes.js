@@ -205,6 +205,48 @@ sessionRoutes.get('/:sessionId', requireAuth, route(async (req, res) => {
 
 // ── Rename ────────────────────────────────────────────────────────────────────
 
+/**
+ * @swagger
+ * /api/sessions/{sessionId}:
+ *   patch:
+ *     summary: Rename a session
+ *     tags: [Sessions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: sessionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [title]
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 maxLength: 120
+ *     responses:
+ *       200:
+ *         description: Session renamed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                 session:
+ *                   type: object
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Access denied
+ */
 sessionRoutes.patch('/:sessionId', requireAuth, route(async (req, res) => {
   const sessionId = requireId(req.params.sessionId, 'sessionId')
   const title = optionalString(req.body?.title, 'title', { max: 120, fallback: null })
@@ -223,6 +265,35 @@ sessionRoutes.patch('/:sessionId', requireAuth, route(async (req, res) => {
 
 // ── Delete ────────────────────────────────────────────────────────────────────
 
+/**
+ * @swagger
+ * /api/sessions/{sessionId}:
+ *   delete:
+ *     summary: Delete a session
+ *     tags: [Sessions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: sessionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Session deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Access denied
+ */
 sessionRoutes.delete('/:sessionId', requireAuth, route(async (req, res) => {
   const sessionId = requireId(req.params.sessionId, 'sessionId')
 
@@ -239,6 +310,49 @@ sessionRoutes.delete('/:sessionId', requireAuth, route(async (req, res) => {
 
 // ── Messages (paginated) ───────────────────────────────────────────────────────
 
+/**
+ * @swagger
+ * /api/sessions/{sessionId}/messages:
+ *   get:
+ *     summary: Get session messages (paginated)
+ *     tags: [Sessions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: sessionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 50
+ *       - in: query
+ *         name: before
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *     responses:
+ *       200:
+ *         description: Messages retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                 messages:
+ *                   type: array
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Access denied
+ */
 sessionRoutes.get('/:sessionId/messages', requireAuth, route(async (req, res) => {
   const sessionId = requireId(req.params.sessionId, 'sessionId')
   const limit = Math.min(parseInt(req.query?.limit) || 50, 100)
@@ -382,6 +496,35 @@ sessionRoutes.post('/:sessionId/heartbeat', requireAuth, route(async (req, res) 
 
 // ── Pause ─────────────────────────────────────────────────────────────────────
 
+/**
+ * @swagger
+ * /api/sessions/{sessionId}/pause:
+ *   post:
+ *     summary: Pause a running session
+ *     tags: [Sessions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: sessionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Session paused successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Access denied
+ */
 sessionRoutes.post('/:sessionId/pause', requireAuth, route(async (req, res) => {
   const sessionId = requireId(req.params.sessionId, 'sessionId')
   await assertOwnsSession(req.user.id, sessionId)
@@ -404,6 +547,35 @@ sessionRoutes.post('/:sessionId/pause', requireAuth, route(async (req, res) => {
 
 // ── Resume ────────────────────────────────────────────────────────────────────
 
+/**
+ * @swagger
+ * /api/sessions/{sessionId}/resume:
+ *   post:
+ *     summary: Resume a paused session
+ *     tags: [Sessions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: sessionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Session resumed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Access denied
+ */
 sessionRoutes.post('/:sessionId/resume', requireAuth, route(async (req, res) => {
   const sessionId = requireId(req.params.sessionId, 'sessionId')
   const session = await assertOwnsSession(req.user.id, sessionId)
@@ -427,6 +599,35 @@ sessionRoutes.post('/:sessionId/resume', requireAuth, route(async (req, res) => 
 
 // ── Stop ──────────────────────────────────────────────────────────────────────
 
+/**
+ * @swagger
+ * /api/sessions/{sessionId}/stop:
+ *   post:
+ *     summary: Stop a running session
+ *     tags: [Sessions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: sessionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Session stopped successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Access denied
+ */
 sessionRoutes.post('/:sessionId/stop', requireAuth, route(async (req, res) => {
   const sessionId = requireId(req.params.sessionId, 'sessionId')
   await assertOwnsSession(req.user.id, sessionId)

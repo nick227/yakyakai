@@ -1,13 +1,21 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { api } from '../api/client.js'
 
-const INITIAL_MESSAGES_LIMIT = 1
-const HISTORY_PAGE_SIZE = 49
-const HISTORY_LOAD_PAUSE_MS = 300
+const PAGE_SIZE = 50
 const LOAD_MORE_TOP_PX = 100
 
 function isSessionAccessDenied(err) {
   return err?.code === 'SESSION_ACCESS_DENIED' || err?.status === 401
+}
+
+function parseClientId(metadata) {
+  if (!metadata) return null
+  try {
+    const parsed = JSON.parse(metadata)
+    return parsed?.clientId || null
+  } catch {
+    return null
+  }
 }
 
 export function useMessages(sessionId, riverRef, onSessionAccessDenied) {
@@ -18,7 +26,7 @@ export function useMessages(sessionId, riverRef, onSessionAccessDenied) {
   const pendingScrollRef = useRef(null)
   const hydratedSessionRef = useRef(null)
 
-  const loadMessages = useCallback(async (targetSessionId, before = null, mode = 'initial', limit = HISTORY_PAGE_SIZE) => {
+  const loadMessages = useCallback(async (targetSessionId, before = null, mode = 'initial', limit = PAGE_SIZE) => {
     if (isLoadingMessagesRef.current) return false
     isLoadingMessagesRef.current = true
     setIsLoadingMessages(true)
@@ -36,12 +44,43 @@ export function useMessages(sessionId, riverRef, onSessionAccessDenied) {
 
     try {
       const res = await api.messages(targetSessionId, before, limit)
-      const newMessages = res.messages || []
+      const newMessages = (res.messages || []).map((message) => ({
+        ...message,
+        serverId: message.id,
+        clientId: parseClientId(message.metadata),
+      }))
       setChatMessages((prev) => {
         if (before) {
-          return [...newMessages, ...prev]
+          // Load-more: strip any DB messages already in state to avoid duplicates
+          const existingIds = new Set()
+          for (let i = 0; i < prev.length; i++) {
+            if (prev[i].id) existingIds.add(prev[i].id)
+          }
+          const deduped = []
+          for (let i = 0; i < newMessages.length; i++) {
+            const m = newMessages[i]
+            if (!m.id || !existingIds.has(m.id)) deduped.push(m)
+          }
+          return [...deduped, ...prev]
         }
-        return newMessages
+        // Initial load: preserve live SSE messages not yet in DB, drop optimistic placeholders
+        const dbIds = new Set()
+        const dbClientIds = new Set()
+        for (let i = 0; i < newMessages.length; i++) {
+          if (newMessages[i].id) dbIds.add(newMessages[i].id)
+          if (newMessages[i].clientId) dbClientIds.add(newMessages[i].clientId)
+        }
+        const liveOnly = []
+        for (let i = 0; i < prev.length; i++) {
+          const m = prev[i]
+          if (m.id &&
+              !String(m.id).startsWith('optimistic-') &&
+              !dbIds.has(m.id) &&
+              !(m.clientId && dbClientIds.has(m.clientId))) {
+            liveOnly.push(m)
+          }
+        }
+        return [...newMessages, ...liveOnly]
       })
       setHasMoreMessages(newMessages.length >= limit)
       return newMessages.length > 0
@@ -73,31 +112,9 @@ export function useMessages(sessionId, riverRef, onSessionAccessDenied) {
   }, [chatMessages, riverRef])
 
   useEffect(() => {
-    const river = riverRef.current
-    if (!river || !sessionId || isLoadingMessages || !hasMoreMessages || chatMessages.length === 0) return
-
-    const shouldHydrateAfterInitialMessage =
-      hydratedSessionRef.current !== sessionId && chatMessages.length === INITIAL_MESSAGES_LIMIT
-    const shouldBackfillUntilScrollable =
-      hydratedSessionRef.current === sessionId && river.scrollHeight <= river.clientHeight + 1
-
-    if (!shouldHydrateAfterInitialMessage && !shouldBackfillUntilScrollable) return
-
-    const oldestMessage = chatMessages[0]
-    if (!oldestMessage?.createdAt) return
-
-    if (shouldHydrateAfterInitialMessage) hydratedSessionRef.current = sessionId
-    const timer = window.setTimeout(() => {
-      loadMessages(sessionId, oldestMessage.createdAt, 'prepend', HISTORY_PAGE_SIZE)
-    }, HISTORY_LOAD_PAUSE_MS)
-
-    return () => window.clearTimeout(timer)
-  }, [sessionId, chatMessages, hasMoreMessages, isLoadingMessages, loadMessages, riverRef])
-
-  useEffect(() => {
     if (!sessionId) return
     hydratedSessionRef.current = null
-    loadMessages(sessionId, null, 'initial', INITIAL_MESSAGES_LIMIT)
+    loadMessages(sessionId, null, 'initial', PAGE_SIZE)
   }, [sessionId, loadMessages])
 
   const handleScroll = useCallback(() => {

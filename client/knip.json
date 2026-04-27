@@ -1,0 +1,17 @@
+{
+  "$schema": "https://raw.githubusercontent.com/webpro/knip/main/knip.schema.json",
+  "entry": ["src/main.jsx"],
+  "project": ["src/**/*.js", "src/**/*.jsx"],
+  "ignore": [
+    "src/**/*.test.js",
+    "src/**/*.test.jsx",
+    "src/**/*.spec.js",
+    "src/**/*.spec.jsx"
+  ],
+  "ignoreDependencies": [
+    "vite",
+    "@vitejs/plugin-react",
+    "@tailwindcss/vite",
+    "tailwindcss"
+  ]
+}

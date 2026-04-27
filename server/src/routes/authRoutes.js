@@ -141,6 +141,38 @@ authRoutes.post('/login', authLimiter, route(async (req, res) => {
   res.json({ ok: true, user: publicUser(user) })
 }))
 
+/**
+ * @swagger
+ * /api/auth/google:
+ *   post:
+ *     summary: Google OAuth authentication
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [credential]
+ *             properties:
+ *               credential:
+ *                 type: string
+ *                 description: Google ID token
+ *     responses:
+ *       200:
+ *         description: Authentication successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                 user:
+ *                   type: object
+ *       400:
+ *         description: Invalid credential
+ */
 authRoutes.post('/google', authLimiter, route(async (req, res) => {
   const credential = String(req.body?.credential || '')
   if (!credential) throw badRequest('MISSING_CREDENTIAL', 'Google credential is required.')
@@ -208,11 +240,55 @@ authRoutes.post('/reset-password', authLimiter, route(async (req, res) => {
   res.json({ ok: true })
 }))
 
+/**
+ * @swagger
+ * /api/auth/logout:
+ *   post:
+ *     summary: User logout
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logout successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *       401:
+ *         description: Unauthorized
+ */
 authRoutes.post('/logout', requireAuth, route(async (_req, res) => {
   clearAuthCookie(res)
   res.json({ ok: true })
 }))
 
+/**
+ * @swagger
+ * /api/auth/me:
+ *   get:
+ *     summary: Get current user
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                 user:
+ *                   type: object
+ *       401:
+ *         description: Unauthorized
+ */
 authRoutes.get('/me', requireAuth, route(async (req, res) => {
   const user = await prisma.user.findUnique({ where: { id: req.user.id } })
   if (!user) throw unauthorized()

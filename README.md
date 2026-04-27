@@ -2,6 +2,8 @@
 
 A full-stack AI session runner that turns a single prompt into a continuous, self-evolving stream of connected exploration. Each session plans a set of distinct work prompts, processes them one by one, then automatically plans the next cycle based on what was found — indefinitely, until the user stops it.
 
+![screenshot](https://i.postimg.cc/YC64vncX/screenshot.png)
+
 ---
 
 ## What it does
@@ -311,3 +313,69 @@ yakyakai.com/
         ├── lib/                   # eventTypes.js (shared constants)
         └── main.jsx               # Full app: AuthGate, App, AdminView
 ```
+
+---
+
+## Testing
+
+### API Tests
+
+The server uses Vitest + Supertest for API testing.
+
+**Run API tests:**
+```bash
+cd server
+npm run test
+```
+
+**Run tests once (CI mode):**
+```bash
+cd server
+npm run test:run
+```
+
+**Generate coverage report:**
+```bash
+cd server
+npm run test:coverage
+```
+
+Coverage reports are generated in the `coverage/` directory.
+
+### API Documentation
+
+Interactive API documentation is available via Swagger UI:
+
+**Start the server:**
+```bash
+cd server
+npm run dev
+```
+
+**Visit:** `http://localhost:3001/api-docs`
+
+The Swagger UI provides:
+- Interactive API exploration
+- Request/response schemas
+- Authentication requirements
+- Try-it-out functionality
+
+### Test Structure
+
+```
+server/src/tests/
+├── api/
+│   ├── auth.test.js      # Authentication endpoint tests
+│   └── sessions.test.js  # Session CRUD endpoint tests
+└── setup.js              # Database cleanup utilities
+```
+
+### Current Coverage
+
+- **Authentication:** Register, login, logout, Google OAuth
+- **Sessions:** Create, list, get, rename, delete
+- **Total tests:** 18 passing
+- **Coverage:** ~34% routes, expanding to critical paths
+
+See `docs/TESTING_COVERAGE.md` for detailed coverage analysis and implementation roadmap.
+

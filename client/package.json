@@ -6,7 +6,11 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "knip": "knip",
+    "madge": "madge --circular --extensions js,jsx src"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.4",
@@ -17,5 +21,15 @@
     "react-dom": "^19.1.0",
     "tailwindcss": "^4.2.4",
     "vite": "^6.3.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.2.1",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.5.0",
+    "knip": "^6.7.0",
+    "madge": "^8.0.0"
   }
 }

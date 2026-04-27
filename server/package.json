@@ -11,7 +11,9 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "prisma:generate": "prisma generate",
-    "test": "node src/tests/chatMessages.test.js"
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest --coverage"
   },
   "dependencies": {
     "@prisma/client": "^6.7.0",
@@ -34,7 +36,10 @@
     "zod": "^3.24.3"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.5",
     "nodemon": "^3.1.10",
-    "prisma": "^6.7.0"
+    "prisma": "^6.7.0",
+    "supertest": "^7.2.2",
+    "vitest": "^4.1.5"
   }
 }

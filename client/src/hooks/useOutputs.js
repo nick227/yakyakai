@@ -8,10 +8,20 @@ function appendVisibleOutput(outputs, output) {
   const next = output?.html
     ? { ...output, html: DOMPurify.sanitize(output.html) }
     : output
-  if (outputs.length < MAX_VISIBLE_OUTPUTS) return [...outputs, next]
-  const arr = outputs.slice(1)
-  arr.push(next)
-  return arr
+  if (outputs.length < MAX_VISIBLE_OUTPUTS) {
+    const result = new Array(outputs.length + 1)
+    for (let i = 0; i < outputs.length; i++) {
+      result[i] = outputs[i]
+    }
+    result[outputs.length] = next
+    return result
+  }
+  const result = new Array(MAX_VISIBLE_OUTPUTS)
+  for (let i = 0; i < MAX_VISIBLE_OUTPUTS - 1; i++) {
+    result[i] = outputs[i + 1]
+  }
+  result[MAX_VISIBLE_OUTPUTS - 1] = next
+  return result
 }
 
 function isNearBottom(el) {
@@ -35,11 +45,15 @@ export function useOutputs(riverRef, onScrollToBottom) {
         setOutputs((prev) => appendVisibleOutput(prev, ev.payload))
         onScrollToBottom?.(isNearBottom(riverRef.current))
         setChatMessages((prev) => {
+          const messageId = ev.payload?.messageId
+          if (messageId && prev.some(m => m.id === messageId)) return prev
           const metadata = { cycle: ev.payload?.cycle, index: ev.payload?.index }
           return [...prev, {
-            clientId: `live-${ev.ts || Date.now()}-${ev.payload?.index ?? prev.length}`,
+            id: messageId,
+            clientId: messageId || `live-${ev.ts || Date.now()}-${ev.payload?.index ?? prev.length}`,
             role: 'ASSISTANT',
             content: ev.payload?.html || '',
+            createdAt: ev.payload?.createdAt,
             metadata: JSON.stringify(metadata),
           }]
         })
@@ -47,10 +61,14 @@ export function useOutputs(riverRef, onScrollToBottom) {
       case EventTypes.NOTICE:
         console.log('[sse] Notice received:', ev.payload?.message)
         setChatMessages((prev) => {
+          const messageId = ev.payload?.messageId
+          if (messageId && prev.some(m => m.id === messageId)) return prev
           const newMessage = {
-            clientId: `notice-${ev.ts || Date.now()}`,
+            id: messageId,
+            clientId: messageId || `notice-${ev.ts || Date.now()}`,
             role: 'ASSISTANT',
             content: ev.payload?.message || '',
+            createdAt: ev.payload?.createdAt,
             metadata: JSON.stringify({ isNotice: true }),
           }
           console.log('[sse] Adding notice message to chat:', newMessage)

@@ -1,7 +1,8 @@
-import { memo, useEffect, useRef, useState } from 'react'
-import { Gauge, Pause, Play, Send, Sparkles, Square } from 'lucide-react'
+import { memo, useCallback, useEffect, useRef, useState } from 'react'
+import { Gauge, LoaderCircle, Pause, Play, Send, Sparkles, Square } from 'lucide-react'
 import { PACE_KEYS, PACE_LABELS } from '../lib/uiConstants.js'
 import ExportActions from './ExportActions.jsx'
+import CreditsModal from './CreditsModal.jsx'
 
 function useCountdown(ms) {
   const [secs, setSecs] = useState(null)
@@ -53,6 +54,10 @@ const RunComposer = memo(function RunComposer({
   onStop,
 }) {
   const nextIn = useCountdown(nextDelay)
+  const isStreaming = isActive && !canResume
+  const [showCredits, setShowCredits] = useState(false)
+  const openCredits = useCallback(() => setShowCredits(true), [])
+  const closeCredits = useCallback(() => setShowCredits(false), [])
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey && canStart) {
@@ -69,8 +74,8 @@ const RunComposer = memo(function RunComposer({
           value={prompt}
           onChange={(e) => onPromptChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={isActive ? 'Run in progress…' : 'Ask YakyakAI to explore, build, compare, draft, or plan…'}
-          disabled={isActive}
+          placeholder={isStreaming ? 'Run in progress…' : 'Ask YakyakAI to explore, build, compare, draft, or plan…'}
+          disabled={isStreaming}
         />
 
         <div className="composer-footer">
@@ -90,6 +95,11 @@ const RunComposer = memo(function RunComposer({
                     <span className="pill-sep" />
                     <span>Next {nextIn}s</span>
                   </>
+                )}
+                {isStreaming && (
+                  <span className="streaming-indicator" aria-label="Streaming in progress">
+                    <LoaderCircle size={16} className="streaming-spinner" aria-hidden="true" />
+                  </span>
                 )}
               </div>
             ) : (
@@ -143,13 +153,14 @@ const RunComposer = memo(function RunComposer({
         {runError && (
           runError === 'CREDITS_EXHAUSTED' ? (
             <div className="credits-alert">
-              <span className="credits-alert-text">You've used all your credits for this month. Credits reset at the start of next month.</span>
-              <button type="button" className="button button-primary credits-alert-cta" disabled>Add credits</button>
+              <span className="credits-alert-text">You've used all your credits for this month.</span>
+              <button type="button" className="button button-primary credits-alert-cta" onClick={openCredits}>Add credits</button>
             </div>
           ) : (
             <p className="composer-error form-error">{runError}</p>
           )
         )}
+        {showCredits && <CreditsModal onClose={closeCredits} />}
       </div>
     </section>
   )

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { LogIn, UserPlus, Mail, KeyRound } from 'lucide-react'
 import { login, register, forgotPassword, resetPassword, googleAuth } from '../api/authApi.js'
+import { RUN_STATUS } from '../lib/uiConstants.js'
 import AppFrame from './AppFrame.jsx'
 
 export default function AuthGate({ onAuth }) {
@@ -119,7 +120,7 @@ export default function AuthGate({ onAuth }) {
   const showGoogleButton = mode === 'login' || mode === 'register'
 
   return (
-    <AppFrame status="idle">
+    <AppFrame status={RUN_STATUS.IDLE}>
       <main className="center-page auth-page">
         <section className="empty-state">
           <div className="hero-eyebrow">Continuous AI sessions</div>

@@ -9,15 +9,6 @@
   - A unique constraint covering the columns `[resetToken]` on the table `User` will be added. If there are existing duplicate values, this will fail.
 
 */
--- DropForeignKey
-ALTER TABLE `agentoutput` DROP FOREIGN KEY `AgentOutput_sessionId_fkey`;
-
--- DropForeignKey
-ALTER TABLE `explorationprompt` DROP FOREIGN KEY `ExplorationPrompt_sessionId_fkey`;
-
--- DropForeignKey
-ALTER TABLE `sessionevent` DROP FOREIGN KEY `SessionEvent_sessionId_fkey`;
-
 -- AlterTable
 ALTER TABLE `aisession` ADD COLUMN `currentPrompt` TEXT NULL;
 
@@ -30,16 +21,16 @@ ALTER TABLE `user` ADD COLUMN `avatarUrl` VARCHAR(191) NULL,
     MODIFY `passwordHash` VARCHAR(191) NULL;
 
 -- DropTable
-DROP TABLE `agentoutput`;
+DROP TABLE IF EXISTS `agentoutput`;
 
 -- DropTable
-DROP TABLE `explorationprompt`;
+DROP TABLE IF EXISTS `explorationprompt`;
 
 -- DropTable
-DROP TABLE `session`;
+DROP TABLE IF EXISTS `session`;
 
 -- DropTable
-DROP TABLE `sessionevent`;
+DROP TABLE IF EXISTS `sessionevent`;
 
 -- CreateIndex
 CREATE INDEX `ChatMessage_sessionId_role_idx` ON `ChatMessage`(`sessionId`, `role`);

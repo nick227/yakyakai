@@ -29,10 +29,7 @@ export async function processPrompts({
     await publish(sessionId, EventTypes.PROMPT_START, { index, cycle: currentCycle })
 
     const promptText = buildProcessPrompt({
-      prompt: item.prompt,
-      priorContext,
-      wordLimit,
-      pace: session.pace,
+      prompt: item.prompt
     })
     const outputResult = await runGoverned(() =>
       runAccountedAiCall({

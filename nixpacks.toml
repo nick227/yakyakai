@@ -5,7 +5,7 @@ nixPkgs = ["nodejs_22"]
 cmds = [
   "npm ci",
   "npm ci --prefix server",
-  "npm install --prefix client --legacy-peer-deps"
+  "npm ci --prefix client --legacy-peer-deps"
 ]
 
 [phases.build]

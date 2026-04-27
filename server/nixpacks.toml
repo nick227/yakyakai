@@ -2,13 +2,9 @@
 nixPkgs = ["nodejs_22"]
 
 [phases.install]
-cmds = [
-  "npm ci",
-  "if [ -f client/package-lock.json ]; then npm ci --prefix client --legacy-peer-deps; elif [ -f ../client/package-lock.json ]; then npm ci --prefix ../client --legacy-peer-deps; else echo 'client/package-lock.json not found' && exit 1; fi"
-]
+cmds = ["npm ci"]
 
 [phases.build]
 cmds = [
-  "npm run prisma:generate",
-  "if [ -f client/package.json ]; then npm run build --prefix client; elif [ -f ../client/package.json ]; then npm run build --prefix ../client; else echo 'client/package.json not found' && exit 1; fi"
+  "npm run prisma:generate"
 ]

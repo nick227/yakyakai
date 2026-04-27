@@ -10,10 +10,10 @@
 
 */
 -- AlterTable
-ALTER TABLE `aisession` ADD COLUMN `currentPrompt` TEXT NULL;
+ALTER TABLE `AiSession` ADD COLUMN `currentPrompt` TEXT NULL;
 
 -- AlterTable
-ALTER TABLE `user` ADD COLUMN `avatarUrl` VARCHAR(191) NULL,
+ALTER TABLE `User` ADD COLUMN `avatarUrl` VARCHAR(191) NULL,
     ADD COLUMN `creditBalance` INTEGER NOT NULL DEFAULT 0,
     ADD COLUMN `googleId` VARCHAR(191) NULL,
     ADD COLUMN `resetToken` VARCHAR(191) NULL,

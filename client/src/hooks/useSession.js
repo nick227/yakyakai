@@ -81,7 +81,7 @@ export function useSession(sessionId, onLoadSession, onEvent, onSessionAccessDen
     }
 
     const openSse = () => {
-      sse = new EventSource(api.eventsUrl(sessionId, lastEventIdRef.current), { withCredentials: true })
+      sse = new EventSource(api.eventsUrl(sessionId, lastEventIdRef.current))
 
       sse.onmessage = (msg) => {
         const ev = parseEventMessage(msg)
@@ -174,7 +174,7 @@ export function useSession(sessionId, onLoadSession, onEvent, onSessionAccessDen
       api.heartbeat(sessionId, visible).catch(() => {})
 
     const beaconBeat = (visible) => {
-      navigator.sendBeacon?.(api.url(`/api/sessions/${sessionId}/heartbeat`), visible ? BEACON_VISIBLE : BEACON_HIDDEN)
+      navigator.sendBeacon?.(`/api/sessions/${sessionId}/heartbeat`, visible ? BEACON_VISIBLE : BEACON_HIDDEN)
     }
 
     const onVisibilityChange = () => beaconBeat(document.visibilityState !== 'hidden')

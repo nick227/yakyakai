@@ -1,14 +1,9 @@
 import { PACE } from '../lib/uiConstants.js'
 
 const jsonHeaders = { 'Content-Type': 'application/json' }
-const apiBase = String(import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '')
-
-function apiUrl(path) {
-  return apiBase ? `${apiBase}${path}` : path
-}
 
 async function request(path, options = {}) {
-  const res = await fetch(apiUrl(path), { credentials: 'include', ...options })
+  const res = await fetch(path, { credentials: 'include', ...options })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
     const err = new Error(data.message || data.error || 'Request failed')
@@ -32,7 +27,6 @@ export function post(path, body = {}) {
 }
 
 export const api = {
-  url:       (path)                    => apiUrl(path),
   start:     (prompt, pace = PACE.STEADY, clientId = null) => post('/api/sessions/start', { prompt, pace, clientId }),
   heartbeat: (id, visible = true)      => post(`/api/sessions/${id}/heartbeat`, { visible }),
   pause:     (id)                      => post(`/api/sessions/${id}/pause`),
@@ -42,7 +36,7 @@ export const api = {
     const params = new URLSearchParams()
     if (afterEventId) params.set('afterEventId', afterEventId)
     const query = params.toString()
-    return apiUrl(`/api/sessions/${id}/events${query ? `?${query}` : ''}`)
+    return `/api/sessions/${id}/events${query ? `?${query}` : ''}`
   },
   messages:  (id, before = null, limit = null) => {
     const params = new URLSearchParams()

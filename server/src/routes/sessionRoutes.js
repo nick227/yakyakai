@@ -138,8 +138,9 @@ sessionRoutes.get('/:sessionId/events', requireAuth, async (req, res, next) => {
     }
     send({ type: EventTypes.CONNECTED, payload: { sessionId, status: session.status } })
 
-    let lastEventId = Date.now()
-    
+    const connectionTime = new Date()
+    let afterEventId = null  // CUID cursor; null means "from connection time"
+
     // Poll database for new events
     const ssePollIntervalMs = Number(process.env.SSE_POLL_INTERVAL_MS || 500)
     const pollInterval = setInterval(async () => {
@@ -147,21 +148,26 @@ sessionRoutes.get('/:sessionId/events', requireAuth, async (req, res, next) => {
         const events = await prisma.aiSessionEvent.findMany({
           where: {
             sessionId,
-            createdAt: { gt: new Date(lastEventId) },
+            // Use id-cursor after first event to avoid missing same-millisecond events
+            // (Windows MySQL clock resolution can be ~15ms, causing createdAt collisions)
+            ...(afterEventId
+              ? { id: { gt: afterEventId } }
+              : { createdAt: { gte: connectionTime } }
+            ),
           },
-          orderBy: { createdAt: 'asc' },
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
         })
-        
+
         for (const event of events) {
           try {
             const parsed = JSON.parse(event.payload)
             send(parsed)
-            lastEventId = event.createdAt.getTime()
+            afterEventId = event.id
           } catch (parseErr) {
             logger.error('SSE JSON parse error', { sessionId, eventId: event.id, error: parseErr.message })
           }
         }
-        
+
         // Send keepalive if no new events
         if (events.length === 0) {
           res.write(SSE_KEEPALIVE)
@@ -179,8 +185,12 @@ sessionRoutes.get('/:sessionId/events', requireAuth, async (req, res, next) => {
       activeSseConnections.set(userId, Math.max(0, currentCount - 1))
     })
   } catch (err) {
-    logger.error('SSE endpoint error', { sessionId, error: err.message })
-    next(err)
+    logger.error('SSE endpoint error', { sessionId: req.params?.sessionId, error: err.message })
+    if (res.headersSent) {
+      res.end()
+    } else {
+      next(err)
+    }
   }
 })
 

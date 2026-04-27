@@ -9,6 +9,7 @@ function safeMeta(meta = {}) {
 }
 
 export const logger = {
+  debug() {},
   info(message, meta = {}) {
     console.log(JSON.stringify({ level: 'info', message, ...safeMeta(meta), time: new Date().toISOString() }))
   },

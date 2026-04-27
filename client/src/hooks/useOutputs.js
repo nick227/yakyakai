@@ -47,12 +47,14 @@ export function useOutputs(riverRef, onScrollToBottom) {
       case EventTypes.NOTICE:
         console.log('[sse] Notice received:', ev.payload?.message)
         setChatMessages((prev) => {
-          return [...prev, {
+          const newMessage = {
             clientId: `notice-${ev.ts || Date.now()}`,
             role: 'ASSISTANT',
             content: ev.payload?.message || '',
             metadata: JSON.stringify({ isNotice: true }),
-          }]
+          }
+          console.log('[sse] Adding notice message to chat:', newMessage)
+          return [...prev, newMessage]
         })
         break
       default:

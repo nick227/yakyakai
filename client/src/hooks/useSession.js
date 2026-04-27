@@ -24,6 +24,21 @@ export function useSession(sessionId, onLoadSession, onEvent, onSessionAccessDen
   const [nextDelay, setNextDelay] = useState(null)
   const [runError, setRunError] = useState(null)
   const heartbeatRef = useRef(null)
+  const onLoadSessionRef = useRef(onLoadSession)
+  const onEventRef = useRef(onEvent)
+  const onSessionAccessDeniedRef = useRef(onSessionAccessDenied)
+
+  useEffect(() => {
+    onLoadSessionRef.current = onLoadSession
+  }, [onLoadSession])
+
+  useEffect(() => {
+    onEventRef.current = onEvent
+  }, [onEvent])
+
+  useEffect(() => {
+    onSessionAccessDeniedRef.current = onSessionAccessDenied
+  }, [onSessionAccessDenied])
 
   useEffect(() => {
     if (!sessionId) return
@@ -31,14 +46,18 @@ export function useSession(sessionId, onLoadSession, onEvent, onSessionAccessDen
     api.getSession(sessionId)
       .then((res) => {
         if (res.session) {
+          if (res.session.status === 'failed' || res.session.status === 'cancelled') {
+            onSessionAccessDeniedRef.current?.()
+            return
+          }
           setStatus(res.session.status)
           setCycleCount(res.session.cycleCount)
-          onLoadSession?.(res.session)
+          onLoadSessionRef.current?.(res.session)
         }
       })
       .catch((err) => {
         console.error('[loadSession] Failed to load session:', err.message)
-        if (isSessionAccessDenied(err)) onSessionAccessDenied?.()
+        if (isSessionAccessDenied(err)) onSessionAccessDeniedRef.current?.()
       })
 
     const sse = new EventSource(api.eventsUrl(sessionId))
@@ -54,7 +73,7 @@ export function useSession(sessionId, onLoadSession, onEvent, onSessionAccessDen
       console.log('[sse] Event received:', ev.type, 'payload:', ev.payload, 'ts:', ev.ts)
 
       // Forward all events to parent handler
-      onEvent?.(ev)
+      onEventRef.current?.(ev)
 
       switch (ev.type) {
         case EventTypes.CONNECTED: {
@@ -64,7 +83,7 @@ export function useSession(sessionId, onLoadSession, onEvent, onSessionAccessDen
           break
         }
         case EventTypes.STATUS: {
-          const { status: nextStatus, cycle, nextIn } = ev.payload || {}
+          const { status: nextStatus, cycle, nextIn, code } = ev.payload || {}
           if (!nextStatus) break
           console.log('[sse] Status →', nextStatus, cycle != null ? `cycle ${cycle}` : '')
           setStatus(nextStatus)
@@ -74,6 +93,11 @@ export function useSession(sessionId, onLoadSession, onEvent, onSessionAccessDen
             setNextDelay(nextIn)
           } else if (nextStatus !== 'cycling') {
             setNextDelay(null)
+          }
+          if (nextStatus === 'failed') {
+            if (code === 'PROMPT_LIMIT_REACHED' || code === 'TOKEN_LIMIT_REACHED') {
+              setRunError('CREDITS_EXHAUSTED')
+            }
           }
           break
         }
@@ -91,7 +115,7 @@ export function useSession(sessionId, onLoadSession, onEvent, onSessionAccessDen
       console.log('[sse] Closing event stream for session', sessionId)
       sse.close()
     }
-  }, [sessionId, onLoadSession, onEvent])
+  }, [sessionId])
 
   useEffect(() => {
     if (!sessionId) return

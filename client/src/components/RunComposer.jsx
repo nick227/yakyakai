@@ -140,7 +140,16 @@ const RunComposer = memo(function RunComposer({
           </div>
         </div>
 
-        {runError && <p className="composer-error form-error">{runError}</p>}
+        {runError && (
+          runError === 'CREDITS_EXHAUSTED' ? (
+            <div className="credits-alert">
+              <span className="credits-alert-text">You've used all your credits for this month. Credits reset at the start of next month.</span>
+              <button type="button" className="button button-primary credits-alert-cta" disabled>Add credits</button>
+            </div>
+          ) : (
+            <p className="composer-error form-error">{runError}</p>
+          )
+        )}
       </div>
     </section>
   )

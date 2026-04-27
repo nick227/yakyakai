@@ -5,11 +5,10 @@ import AppFrame from './AppFrame.jsx'
 
 export default function AuthGate({ onAuth }) {
   const [mode, setMode] = useState('login')
-  const [form, setForm] = useState({ name: '', email: '', password: '', token: '' })
+  const [token, setToken] = useState('')
   const [error, setError] = useState(null)
   const [busy, setBusy] = useState(false)
   const googleBtnRef = useRef(null)
-  // Always-current callback ref so the Google SDK never holds a stale closure
   const googleCallbackRef = useRef(null)
   googleCallbackRef.current = async ({ credential }) => {
     setBusy(true)
@@ -24,13 +23,11 @@ export default function AuthGate({ onAuth }) {
     }
   }
 
-  const set = (key) => (e) => setForm((value) => ({ ...value, [key]: e.target.value }))
-
   // Detect reset token in URL on mount
   useEffect(() => {
-    const token = new URLSearchParams(window.location.search).get('token')
-    if (token) {
-      setForm(f => ({ ...f, token }))
+    const t = new URLSearchParams(window.location.search).get('token')
+    if (t) {
+      setToken(t)
       setMode('reset')
       window.history.replaceState({}, '', window.location.pathname)
     }
@@ -74,40 +71,38 @@ export default function AuthGate({ onAuth }) {
     setBusy(true)
     setError(null)
 
+    const data = new FormData(e.target)
+    const email    = data.get('email')    || ''
+    const password = data.get('password') || ''
+    const name     = data.get('name')     || ''
+
     try {
       if (mode === 'login') {
-        const data = await login({ email: form.email, password: form.password })
+        const res = await login({ email, password })
 
         if (window.PasswordCredential) {
-          const cred = new window.PasswordCredential({
-            id: form.email,
-            password: form.password,
-            name: data.user.name || form.email,
-          })
-          navigator.credentials.store(cred)
+          navigator.credentials.store(new window.PasswordCredential({
+            id: email, password, name: res.user.name || email,
+          }))
         }
 
-        onAuth(data.user)
+        onAuth(res.user)
       } else if (mode === 'register') {
-        const data = await register({ name: form.name, email: form.email, password: form.password })
+        const res = await register({ name, email, password })
 
         if (window.PasswordCredential) {
-          const cred = new window.PasswordCredential({
-            id: form.email,
-            password: form.password,
-            name: data.user.name || form.email,
-          })
-          navigator.credentials.store(cred)
+          navigator.credentials.store(new window.PasswordCredential({
+            id: email, password, name: res.user.name || email,
+          }))
         }
 
-        onAuth(data.user)
+        onAuth(res.user)
       } else if (mode === 'forgot') {
-        await forgotPassword(form.email)
+        await forgotPassword(email)
         setMode('forgot-sent')
       } else if (mode === 'reset') {
-        await resetPassword(form.token, form.password)
+        await resetPassword(token, password)
         setMode('login')
-        setError(null)
       }
     } catch (err) {
       setError(err.message)
@@ -134,7 +129,8 @@ export default function AuthGate({ onAuth }) {
           </p>
         </section>
 
-        <form className="auth-panel panel" onSubmit={submit}>
+        {/* key=mode remounts the form on mode switch, clearing all inputs */}
+        <form key={mode} className="auth-panel panel" onSubmit={submit}>
           <div className="panel-inner stack">
             {mode === 'forgot-sent' ? (
               <>
@@ -150,10 +146,10 @@ export default function AuthGate({ onAuth }) {
               <>
                 <div>
                   <h2 className="run-title">
-                    {mode === 'login' && 'Sign in'}
+                    {mode === 'login'    && 'Sign in'}
                     {mode === 'register' && 'Create account'}
-                    {mode === 'forgot' && 'Reset password'}
-                    {mode === 'reset' && 'Set new password'}
+                    {mode === 'forgot'   && 'Reset password'}
+                    {mode === 'reset'    && 'Set new password'}
                   </h2>
                   <p className="run-note">One shell, one stream, one place to steer the run.</p>
                 </div>
@@ -171,8 +167,6 @@ export default function AuthGate({ onAuth }) {
                     name="name"
                     autoComplete="name"
                     placeholder="Name"
-                    value={form.name}
-                    onChange={set('name')}
                   />
                 )}
 
@@ -183,8 +177,6 @@ export default function AuthGate({ onAuth }) {
                     name="email"
                     autoComplete="email"
                     placeholder="Email"
-                    value={form.email}
-                    onChange={set('email')}
                     required
                   />
                 )}
@@ -196,8 +188,6 @@ export default function AuthGate({ onAuth }) {
                     name="password"
                     autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                     placeholder={mode === 'reset' ? 'New password' : 'Password'}
-                    value={form.password}
-                    onChange={set('password')}
                     required
                   />
                 )}
@@ -205,9 +195,9 @@ export default function AuthGate({ onAuth }) {
                 {error && <p className="form-error">{error}</p>}
 
                 <button className="button button-primary full-width" type="submit" disabled={busy}>
-                  {mode === 'login'    && <><LogIn size={16} /> Sign in</>}
+                  {mode === 'login'    && <><LogIn size={16} />    Sign in</>}
                   {mode === 'register' && <><UserPlus size={16} /> Create account</>}
-                  {mode === 'forgot'   && <><Mail size={16} /> Send reset link</>}
+                  {mode === 'forgot'   && <><Mail size={16} />     Send reset link</>}
                   {mode === 'reset'    && <><KeyRound size={16} /> Set new password</>}
                 </button>
 
@@ -231,10 +221,7 @@ export default function AuthGate({ onAuth }) {
                   <button
                     type="button"
                     className="button button-ghost full-width"
-                    onClick={() => {
-                      setMode((value) => value === 'login' ? 'register' : 'login')
-                      setError(null)
-                    }}
+                    onClick={() => { setMode(m => m === 'login' ? 'register' : 'login'); setError(null) }}
                   >
                     {mode === 'login' ? 'Create an account' : 'Back to sign in'}
                   </button>

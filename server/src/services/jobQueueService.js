@@ -35,10 +35,15 @@ export async function claimNextJob(workerId = 'worker-1') {
       ],
     },
     orderBy: [{ priority: 'desc' }, { runAt: 'asc' }],
-    select: { id: true },
+    select: { id: true, sessionId: true, session: { select: { isVisible: true } } },
   })
 
-  if (!candidate) return null
+  if (!candidate) {
+    console.log('[jobQueue] No eligible jobs found', { workerId, now })
+    return null
+  }
+
+  console.log('[jobQueue] Found candidate job', { jobId: candidate.id, sessionId: candidate.sessionId, isVisible: candidate.session?.isVisible })
 
   // Atomic claim — only succeeds if still queued
   const claimed = await prisma.job.updateMany({
@@ -51,8 +56,12 @@ export async function claimNextJob(workerId = 'worker-1') {
     },
   })
 
-  if (claimed.count === 0) return null
+  if (claimed.count === 0) {
+    console.log('[jobQueue] Job claim failed (race condition)', { jobId: candidate.id })
+    return null
+  }
 
+  console.log('[jobQueue] Job claimed successfully', { jobId: candidate.id, workerId })
   return prisma.job.findUnique({ where: { id: candidate.id } })
 }
 

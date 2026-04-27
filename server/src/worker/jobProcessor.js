@@ -21,7 +21,9 @@ export async function processJob(job, { publish, workerId }) {
         throw new Error(`Unknown job type: ${job.type}`)
     }
   } catch (err) {
-    const retriable = job.attempts < job.maxAttempts
+    // Client errors (4xx) will fail identically on every retry — don't waste attempts
+    const isClientError = err.status >= 400 && err.status < 500
+    const retriable = !isClientError && job.attempts < job.maxAttempts
     if (retriable) {
       const delayMs = Math.pow(2, job.attempts) * 10_000
       const runAt = new Date(Date.now() + delayMs)
@@ -36,7 +38,7 @@ export async function processJob(job, { publish, workerId }) {
 
     if (job.sessionId) {
       await prisma.aiSession.update({ where: { id: job.sessionId }, data: { status: 'failed' } }).catch(() => {})
-      await publish(job.sessionId, EventTypes.STATUS, { status: 'failed', error: err.message })
+      await publish(job.sessionId, EventTypes.STATUS, { status: 'failed', error: err.message, code: err.code || null })
       bus.cleanup(job.sessionId)
     }
     await failJob(job.id, err)

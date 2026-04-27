@@ -11,11 +11,9 @@ cmds = [
 [phases.build]
 cmds = [
   "npm run build --prefix client",
-  "cd server && npm run prisma:generate"
+  "cd server && npm run prisma:generate",
+  "cd server && npm run db:deploy"
 ]
 
 [start]
 cmd = "cd server && npm run start"
-
-[phases.pre-deploy]
-cmds = ["cd server && npm run db:deploy"]

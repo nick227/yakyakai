@@ -69,7 +69,14 @@ export async function assertCanSpendPrompt({ userId, prompt }) {
   const pending = inFlight.get(userId) || 0
 
   if (usage.promptsUsed + pending > usageLimits.freeMonthlyPromptLimit) {
-    throw paymentRequired('PROMPT_LIMIT_REACHED', 'Monthly prompt limit reached.')
+    // Monthly limit exceeded — atomically consume one purchased credit if available
+    const result = await prisma.user.updateMany({
+      where: { id: userId, creditBalance: { gt: 0 } },
+      data: { creditBalance: { decrement: 1 } },
+    })
+    if (result.count === 0) {
+      throw paymentRequired('PROMPT_LIMIT_REACHED', 'Monthly prompt limit reached.')
+    }
   }
 
   if (usage.estimatedTokensUsed + estimatedPromptTokens > usageLimits.freeMonthlyTokenLimit) {
@@ -86,6 +93,18 @@ function readProviderUsage(result) {
     actualCompletionTokens: usage?.completion_tokens ?? usage?.output_tokens ?? null,
     actualTotalTokens: usage?.total_tokens ?? null,
     model: result?.model || result?.response?.model || null,
+  }
+}
+
+export async function getCredits(userId) {
+  const [usage, user] = await Promise.all([
+    getMonthlyUsage(userId),
+    prisma.user.findUnique({ where: { id: userId }, select: { creditBalance: true } }),
+  ])
+  return {
+    promptsUsed: usage.promptsUsed,
+    promptLimit: usageLimits.freeMonthlyPromptLimit,
+    creditBalance: user?.creditBalance ?? 0,
   }
 }
 

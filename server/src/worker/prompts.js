@@ -1,68 +1,95 @@
-// Shared planner guidance reused by both first-cycle and follow-up planning calls.
-const COMMON_PLANNER_SYSTEM = `
-The array of prompts will be used to generate content for a user.
-Our goal is to prevent generic and obvious content.
-Avoid beginner-level or filler topics.
-Prefer prompts that create specific outputs, decisions, frameworks, examples, or useful assets.
-Each prompt should be a distinct unique concept and not repetitive.
-The prompts should encourage good writing and well-structured content.
-The prompts should be concise and to the point.
-Return the array of prompts as a JSON object.
-`
-
-// Used only for the very first planner call in a session to map the core request.
+// Used for planner calls to generate strong downstream prompts.
 const PLANNER_SYSTEM = `
-You create an array of prompts about a user submitted subject.
-Think about the broader universe of related topics.
-Each prompt must cover a different aspect of the subject.
-` + COMMON_PLANNER_SYSTEM
+You create a list of prompts about a user topic.
 
-// Used for subsequent cycle planning calls to expand into adjacent directions.
-const CYCLE_SYSTEM = `
-You create an array of prompts related to a user submitted subject.
-Think of a new related adjacent subject.
-Create prompts about that creative new direction.
-` + COMMON_PLANNER_SYSTEM
+The prompts will be used to generate final content for the user.
 
-// Used by the process agent for each planned prompt to produce HTML output.
-const PROCESS_SYSTEM = `
-You write premium and useful content about the user submitted subject.
+Goal:
+Create prompts that lead to sharp, useful, non-obvious outputs.
 
 Rules:
-- Return as html fragment tags only.
-- Use only: <section>, <div>, <h2>, <h3>, <p>, <ul>, <li>.
-- Make smart use of headings and subheadings to guide the reader.
-- Use short lists as examples and summaries.
-- Use tailwind css classes for styling and layout.
-- Let the information determine structure. Prefer clarity over decoration.
-- No conclusion blocks, no generic intros, no repeated advice.
-- Avoid filler content, focus on commercially useful content.
-- Prefer sharp elucidating deep-dives into the subject.
-- The writing style should readable and easy to digest.
+- Each prompt must explore a different valuable angle.
+- Prefer hidden opportunities, practical execution, mistakes, traps, tradeoffs, strategy, money, growth, edge, systems, psychology, or contrarian truths.
+- Focus on what matters in the real world.
+- Avoid beginner topics, filler, summaries, definitions, and obvious advice.
+- Avoid corporate or consultant language.
+- Avoid repeating the user's wording.
+- Each prompt should feel like something worth paying to read.
+- Keep prompts concise, direct, and specific.
+- Collectively create strong coverage of the topic.
+- Return only a JSON array of prompt strings.
 `
 
-// Builds the first-cycle planner payload (core topic exploration).
-export function buildInitialPlannerPrompt({ originalPrompt, promptCount }) {
+// Used to generate one fresh adjacent subject for the next cycle.
+const NEW_PROMPT_SYSTEM = `
+Given a topic, generate one adjacent subject that moves the conversation in a smart new direction.
+
+Goal:
+Keep it relevant, interesting, and non-obvious.
+
+Rules:
+- Stay connected to the original topic.
+- Prefer practical, profitable, strategic, psychological, technical, historical, or contrarian directions.
+- Avoid generic, repetitive, vague, or unrealistic ideas.
+- Keep it concise.
+- Return only the subject text.
+`
+
+// Used by the process agent to generate final HTML content.
+const PROCESS_SYSTEM = `
+You write useful high-quality content about a user topic.
+
+Voice: Simple and efficient. 
+
+Scope:
+- Focus only on the exact prompt provided.
+- Assume it belongs to a broader topic, but do not restate or summarize the broader topic.
+- Do not drift into unrelated adjacent ideas unless they directly strengthen the response.
+- Go deeper on the assigned angle instead of going wider.
+
+Output:
+- Return HTML fragment only.
+- Allowed tags: section, div, h2, h3, p, ul, li.
+- No markdown.
+- No css, no script, no head, no body.
+
+Style:
+- Clear, sharp, intelligent, readable.
+- Start with the highest-value insight first.
+- Compact, scannable structure.
+
+Rules:
+- 2 to 6 short sections max.
+- 140 to 320 words.
+- Every paragraph must contain concrete value.
+- Prefer specifics, examples, tradeoffs, frameworks, steps, numbers, or warnings.
+- If the prompt implies business value, be commercially practical.
+- If the prompt implies technical value, be operationally concrete.
+- If the prompt implies strategy, discuss leverage and downside.
+- No filler, repetition, generic motivation, or consultant jargon.
+- No conclusion block unless necessary.
+`
+
+// Builds planner payload.
+export function buildPlannerPrompt({ subject, promptCount }) {
   return {
     system: PLANNER_SYSTEM,
-    user: `Generate ${promptCount} distinct quality prompts about: ${originalPrompt}
-`,
+    user: `Generate ${promptCount} distinct high-value prompts about: ${subject}`
   }
 }
 
-// Builds later-cycle planner payloads (adjacent-topic expansion).
-export function buildCyclePlannerPrompt({ originalPrompt, promptCount }) {
-  return {
-    system: CYCLE_SYSTEM,
-    user: `Generate ${promptCount} prompts adjacent to: ${originalPrompt}.
-    Be creative and think about an interesting new direction.`,
-  }
-}
-
-// Builds the process-agent payload for a single planned prompt item.
+// Builds process payload.
 export function buildProcessPrompt({ prompt }) {
   return {
     system: PROCESS_SYSTEM,
-    user: prompt,
+    user: `Write a sharp useful deep-dive about: ${prompt}`
+  }
+}
+
+// Builds adjacent-topic payload.
+export function buildNextPromptPrompt({ currentPrompt }) {
+  return {
+    system: NEW_PROMPT_SYSTEM,
+    user: `Generate one adjacent subject for: ${currentPrompt}`
   }
 }

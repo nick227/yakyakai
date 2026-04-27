@@ -4,7 +4,7 @@ const apiKey = process.env.OPENAI_API_KEY
 const model = process.env.OPENAI_MODEL || 'gpt-4.1-mini'
 const client = apiKey ? new OpenAI({ apiKey }) : null
 
-export async function callAI({ system, user, temperature = 0.4 }) {
+export async function callAI({ system, user, temperature = 0.4, signal }) {
   if (!client) return mockAI({ system, user })
 
   const response = await client.chat.completions.create({
@@ -14,13 +14,13 @@ export async function callAI({ system, user, temperature = 0.4 }) {
       { role: 'system', content: system },
       { role: 'user', content: user },
     ],
-  })
+  }, signal ? { signal } : undefined)
 
   return response.choices?.[0]?.message?.content?.trim() || ''
 }
 
 // Returns { text, usage, model } so callers can record actual token counts.
-export async function callAIRich({ system, user, temperature = 0.4 }) {
+export async function callAIRich({ system, user, temperature = 0.4, signal }) {
   if (!client) {
     return { text: mockAI({ system, user }), usage: null, model }
   }
@@ -32,7 +32,7 @@ export async function callAIRich({ system, user, temperature = 0.4 }) {
       { role: 'system', content: system },
       { role: 'user', content: user },
     ],
-  })
+  }, signal ? { signal } : undefined)
 
   return {
     text: response.choices?.[0]?.message?.content?.trim() || '',
@@ -45,6 +45,7 @@ export async function callPlannerStructured({
   system,
   user,
   temperature = 0.4,
+  signal,
   count = 6,
   toolName = 'submit_plan',
   toolDescription = 'Submit the generated plan prompts.',
@@ -92,7 +93,7 @@ export async function callPlannerStructured({
       type: 'function',
       function: { name: toolName },
     },
-  })
+  }, signal ? { signal } : undefined)
 
   const toolCall = response.choices?.[0]?.message?.tool_calls?.[0]
   const args = toolCall?.function?.arguments ? JSON.parse(toolCall.function.arguments) : {}

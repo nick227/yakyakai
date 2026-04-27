@@ -5,8 +5,9 @@ import { bus } from '../services/bus.js'
 import { logger } from '../lib/logger.js'
 import { EventTypes } from '../lib/eventTypes.js'
 import { paceMs } from '../lib/pace.js'
+import { isAbortError } from '../services/sessionAbortService.js'
 import { MAX_CYCLES } from './constants.js'
-import { buildCyclePlan, buildInitialPlan } from './planning.js'
+import { buildCyclePlan, buildInitialPlan, getNextPrompt } from './planning.js'
 import { processPrompts } from './processing.js'
 
 async function getSessionStatus(sessionId) {
@@ -32,15 +33,33 @@ export async function runSessionJob(job, { publish }) {
   await publish(sessionId, EventTypes.STATUS, { status: isFirstCycle ? 'planning' : 'expanding', cycle: currentCycle })
 
   let plan
-  if (isFirstCycle) {
-    plan = await buildInitialPlan({ session, sessionId, jobId: job.id, publish })
-    await prisma.aiSession.update({
-      where: { id: sessionId },
-      data: { title: plan.title, promptCount: plan.prompts.length },
-    })
-  } else {
-    plan = await buildCyclePlan({ session, sessionId, jobId: job.id, currentCycle, publish })
-    await prisma.aiSession.update({ where: { id: sessionId }, data: { promptCount: plan.prompts.length } })
+  try {
+    if (isFirstCycle) {
+      plan = await buildInitialPlan({ session, sessionId, jobId: job.id, publish })
+      await prisma.aiSession.update({
+        where: { id: sessionId },
+        data: { title: plan.title, promptCount: plan.prompts.length, currentPrompt: session.originalPrompt },
+      })
+    } else {
+      const currentPrompt = session.currentPrompt || session.originalPrompt
+      const nextPrompt = await getNextPrompt({ session, sessionId, jobId: job.id, currentPrompt })
+      await prisma.aiSession.update({ where: { id: sessionId }, data: { currentPrompt: nextPrompt } })
+      plan = await buildCyclePlan({ session, sessionId, jobId: job.id, currentCycle, publish, currentPrompt: nextPrompt })
+      await prisma.aiSession.update({ where: { id: sessionId }, data: { promptCount: plan.prompts.length } })
+    }
+  } catch (error) {
+    if (!isAbortError(error)) throw error
+    const statusAfterAbort = await getSessionStatus(sessionId)
+    if (statusAfterAbort === 'cancelled') {
+      await publish(sessionId, EventTypes.STATUS, { status: 'stopped' })
+      bus.cleanup(sessionId)
+      return
+    }
+    if (statusAfterAbort === 'paused') {
+      await publish(sessionId, EventTypes.STATUS, { status: 'paused', cycle: currentCycle })
+      return
+    }
+    throw error
   }
 
   await publish(sessionId, EventTypes.PLAN, { prompts: plan.prompts.map((p) => p.prompt), cycle: currentCycle })

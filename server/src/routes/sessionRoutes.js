@@ -3,13 +3,14 @@ import { prisma } from '../db/prisma.js'
 import { requireAuth } from '../middleware/auth.js'
 import { assertOwnsSession } from '../middleware/permissions.js'
 import { enqueueJob } from '../services/jobQueueService.js'
-import { bus } from '../services/bus.js'
 import { route } from '../lib/route.js'
-import { requireString, requireId } from '../lib/validation.js'
+import { requireString, requireId, optionalInt, optionalString } from '../lib/validation.js'
 import { forbidden } from '../lib/httpError.js'
 import { EventTypes } from '../lib/eventTypes.js'
 import { VALID_PACES } from '../lib/pace.js'
 import { logger } from '../lib/logger.js'
+import { publish } from '../worker/events.js'
+import { abortSessionAiCall } from '../services/sessionAbortService.js'
 
 export const sessionRoutes = Router()
 
@@ -17,18 +18,121 @@ export const sessionRoutes = Router()
 const activeSseConnections = new Map()
 const MAX_SSE_CONNECTIONS_PER_USER = 5
 
+// ── List ──────────────────────────────────────────────────────────────────────
+
+/**
+ * @swagger
+ * /api/sessions:
+ *   get:
+ *     summary: List user sessions
+ *     tags: [Sessions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: take
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 50
+ *           default: 20
+ *       - in: query
+ *         name: cursor
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Session list retrieved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                 sessions:
+ *                   type: array
+ *                 nextCursor:
+ *                   type: string
+ *       401:
+ *         description: Unauthorized
+ */
+sessionRoutes.get('/', requireAuth, route(async (req, res) => {
+  const take = optionalInt(req.query?.take, 'take', { min: 1, max: 50, fallback: 20 })
+  const cursor = optionalString(req.query?.cursor, 'cursor', { max: 64, fallback: null })
+  const sessions = await prisma.aiSession.findMany({
+    where: { userId: req.user.id },
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+    take: take + 1,
+    select: { id: true, title: true, status: true, createdAt: true, cycleCount: true },
+  })
+  const hasMore = sessions.length > take
+  const items = hasMore ? sessions.slice(0, take) : sessions
+  const nextCursor = hasMore ? items[items.length - 1].id : null
+  res.json({ ok: true, sessions: items, nextCursor })
+}))
+
 // ── Start ─────────────────────────────────────────────────────────────────────
 
+/**
+ * @swagger
+ * /api/sessions/start:
+ *   post:
+ *     summary: Create a new AI session
+ *     tags: [Sessions]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [prompt]
+ *             properties:
+ *               prompt:
+ *                 type: string
+ *                 maxLength: 24000
+ *               pace:
+ *                 type: string
+ *                 enum: [steady, fast, thorough]
+ *                 default: steady
+ *               clientId:
+ *                 type: string
+ *                 maxLength: 80
+ *     responses:
+ *       201:
+ *         description: Session created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                 sessionId:
+ *                   type: string
+ *                 jobId:
+ *                   type: string
+ *                 status:
+ *                   type: string
+ *                 pace:
+ *                   type: string
+ *       401:
+ *         description: Unauthorized
+ */
 sessionRoutes.post('/start', requireAuth, route(async (req, res) => {
   const originalPrompt = requireString(req.body?.prompt, 'prompt', { max: 24_000 })
   const pace = VALID_PACES.includes(req.body?.pace) ? req.body.pace : 'steady'
+  const clientId = optionalString(req.body?.clientId, 'clientId', { max: 80, fallback: null })
 
   logger.info('Session start', { userId: req.user.id, pace, promptLength: originalPrompt.length })
 
   const session = await prisma.aiSession.create({
     data: {
       userId: req.user.id,
-      title: originalPrompt.slice(0, 80),
+      title: originalPrompt.slice(0, 60),
       originalPrompt,
       status: 'queued',
       pace,
@@ -38,6 +142,7 @@ sessionRoutes.post('/start', requireAuth, route(async (req, res) => {
         create: {
           role: 'USER',
           content: originalPrompt,
+          ...(clientId ? { metadata: JSON.stringify({ clientId }) } : {}),
         },
       },
     },
@@ -58,6 +163,37 @@ sessionRoutes.post('/start', requireAuth, route(async (req, res) => {
 
 // ── Get ───────────────────────────────────────────────────────────────────────
 
+/**
+ * @swagger
+ * /api/sessions/{sessionId}:
+ *   get:
+ *     summary: Get a specific session
+ *     tags: [Sessions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: sessionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Session retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                 session:
+ *                   type: object
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Access denied
+ */
 sessionRoutes.get('/:sessionId', requireAuth, route(async (req, res) => {
   const sessionId = requireId(req.params.sessionId, 'sessionId')
   const session = await prisma.aiSession.findFirst({
@@ -65,6 +201,40 @@ sessionRoutes.get('/:sessionId', requireAuth, route(async (req, res) => {
   })
   if (!session) throw forbidden('SESSION_ACCESS_DENIED', 'You do not have access to this session.')
   res.json({ ok: true, session })
+}))
+
+// ── Rename ────────────────────────────────────────────────────────────────────
+
+sessionRoutes.patch('/:sessionId', requireAuth, route(async (req, res) => {
+  const sessionId = requireId(req.params.sessionId, 'sessionId')
+  const title = optionalString(req.body?.title, 'title', { max: 120, fallback: null })
+  if (title === null) return res.status(400).json({ ok: false, error: 'title required' })
+
+  const session = await prisma.aiSession.findFirst({ where: { id: sessionId, userId: req.user.id } })
+  if (!session) throw forbidden('SESSION_ACCESS_DENIED', 'You do not have access to this session.')
+
+  const updated = await prisma.aiSession.update({
+    where: { id: sessionId },
+    data: { title: title.trim() },
+    select: { id: true, title: true },
+  })
+  res.json({ ok: true, session: updated })
+}))
+
+// ── Delete ────────────────────────────────────────────────────────────────────
+
+sessionRoutes.delete('/:sessionId', requireAuth, route(async (req, res) => {
+  const sessionId = requireId(req.params.sessionId, 'sessionId')
+
+  const session = await prisma.aiSession.findFirst({ where: { id: sessionId, userId: req.user.id } })
+  if (!session) throw forbidden('SESSION_ACCESS_DENIED', 'You do not have access to this session.')
+
+  abortSessionAiCall(sessionId)
+  await prisma.$transaction([
+    prisma.job.deleteMany({ where: { sessionId } }),
+    prisma.aiSession.delete({ where: { id: sessionId } }),
+  ])
+  res.json({ ok: true })
 }))
 
 // ── Messages (paginated) ───────────────────────────────────────────────────────
@@ -100,6 +270,7 @@ sessionRoutes.get('/:sessionId/events', requireAuth, async (req, res, next) => {
   try {
     const sessionId = requireId(req.params.sessionId, 'sessionId')
     const userId = req.user.id
+    const requestedAfterEventId = optionalString(req.query?.afterEventId, 'afterEventId', { max: 64, fallback: null })
     
     // Check SSE connection limit
     const userConnections = activeSseConnections.get(userId) || 0
@@ -139,7 +310,7 @@ sessionRoutes.get('/:sessionId/events', requireAuth, async (req, res, next) => {
     send({ type: EventTypes.CONNECTED, payload: { sessionId, status: session.status } })
 
     const connectionTime = new Date()
-    let afterEventId = null  // CUID cursor; null means "from connection time"
+    let afterEventId = requestedAfterEventId  // CUID cursor; null means "from connection time"
 
     // Poll database for new events
     const ssePollIntervalMs = Number(process.env.SSE_POLL_INTERVAL_MS || 500)
@@ -161,7 +332,7 @@ sessionRoutes.get('/:sessionId/events', requireAuth, async (req, res, next) => {
         for (const event of events) {
           try {
             const parsed = JSON.parse(event.payload)
-            send(parsed)
+            send({ ...parsed, eventId: event.id })
             afterEventId = event.id
           } catch (parseErr) {
             logger.error('SSE JSON parse error', { sessionId, eventId: event.id, error: parseErr.message })
@@ -200,11 +371,12 @@ sessionRoutes.post('/:sessionId/heartbeat', requireAuth, route(async (req, res) 
   const sessionId = requireId(req.params.sessionId, 'sessionId')
   const visible = req.body?.visible !== false
 
-  await prisma.aiSession.updateMany({
+  const result = await prisma.aiSession.updateMany({
     where: { id: sessionId, userId: req.user.id },
     data: { lastHeartbeatAt: new Date(), isVisible: visible },
   })
 
+  if (result.count === 0) return res.sendStatus(403)
   res.sendStatus(204)
 }))
 
@@ -224,8 +396,9 @@ sessionRoutes.post('/:sessionId/pause', requireAuth, route(async (req, res) => {
       data: { status: 'paused', isVisible: false },
     }),
   ])
+  abortSessionAiCall(sessionId)
 
-  bus.publish(sessionId, { type: EventTypes.STATUS, payload: { status: 'paused' }, ts: Date.now() })
+  await publish(sessionId, EventTypes.STATUS, { status: 'paused' })
   res.json({ ok: true })
 }))
 
@@ -248,7 +421,7 @@ sessionRoutes.post('/:sessionId/resume', requireAuth, route(async (req, res) => 
     }),
   ])
 
-  bus.publish(sessionId, { type: EventTypes.STATUS, payload: { status: 'running' }, ts: Date.now() })
+  await publish(sessionId, EventTypes.STATUS, { status: 'running' })
   res.json({ ok: true })
 }))
 
@@ -268,8 +441,9 @@ sessionRoutes.post('/:sessionId/stop', requireAuth, route(async (req, res) => {
       data: { status: 'cancelled' },
     }),
   ])
+  abortSessionAiCall(sessionId)
 
-  bus.publish(sessionId, { type: EventTypes.STATUS, payload: { status: 'stopped' }, ts: Date.now() })
+  await publish(sessionId, EventTypes.STATUS, { status: 'stopped' })
   res.json({ ok: true })
 }))
 
@@ -289,7 +463,8 @@ sessionRoutes.post('/:sessionId/cancel', requireAuth, route(async (req, res) => 
       data: { status: 'cancelled' },
     }),
   ])
+  abortSessionAiCall(sessionId)
 
-  bus.publish(sessionId, { type: EventTypes.STATUS, payload: { status: 'stopped' }, ts: Date.now() })
+  await publish(sessionId, EventTypes.STATUS, { status: 'stopped' })
   res.json({ ok: true })
 }))

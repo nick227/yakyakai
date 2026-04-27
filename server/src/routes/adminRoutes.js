@@ -2,11 +2,12 @@ import { Router } from 'express'
 import { prisma } from '../db/prisma.js'
 import { getGovernorState } from '../services/aiGovernor.js'
 import { requireAdmin } from '../middleware/permissions.js'
-import { bus } from '../services/bus.js'
 import { route } from '../lib/route.js'
 import { optionalInt, requireId } from '../lib/validation.js'
 import { EventTypes } from '../lib/eventTypes.js'
 import { currentMonthWindow } from '../utils/monthWindow.js'
+import { publish } from '../worker/events.js'
+import { abortSessionAiCall } from '../services/sessionAbortService.js'
 
 export const adminRoutes = Router()
 
@@ -139,6 +140,21 @@ adminRoutes.get('/online', requireAdmin, route(async (_req, res) => {
   })
 }))
 
+// ── Credits grant ─────────────────────────────────────────────────────────────
+
+adminRoutes.post('/users/:userId/credits', requireAdmin, route(async (req, res) => {
+  const userId = requireId(req.params.userId, 'userId')
+  const amount = optionalInt(req.body?.amount, 'amount', { min: 1, max: 100_000, fallback: 100 })
+
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: { creditBalance: { increment: amount } },
+    select: { id: true, email: true, creditBalance: true },
+  })
+
+  res.json({ ok: true, user })
+}))
+
 // ── Admin force-stop session ──────────────────────────────────────────────────
 
 adminRoutes.post('/sessions/:sessionId/stop', requireAdmin, route(async (req, res) => {
@@ -148,7 +164,8 @@ adminRoutes.post('/sessions/:sessionId/stop', requireAdmin, route(async (req, re
     prisma.job.updateMany({ where: { sessionId, status: 'queued' }, data: { status: 'cancelled' } }),
     prisma.aiSession.update({ where: { id: sessionId }, data: { status: 'cancelled' } }),
   ])
+  abortSessionAiCall(sessionId)
 
-  bus.publish(sessionId, { type: EventTypes.STATUS, payload: { status: 'stopped' }, ts: Date.now() })
+  await publish(sessionId, EventTypes.STATUS, { status: 'stopped' })
   res.json({ ok: true })
 }))

@@ -53,6 +53,7 @@ model User {
   passwordHash String?
   role         UserRole      @default(USER)
   plan         UserPlan      @default(FREE)
+  creditBalance Int          @default(0)
   resetToken   String?       @unique
   resetTokenAt DateTime?
   createdAt    DateTime      @default(now())
@@ -71,6 +72,7 @@ model AiSession {
   userId          String
   title           String?
   originalPrompt  String        @db.Text
+  currentPrompt   String?       @db.Text
   status          String        @default("created")
   promptCount     Int           @default(0)
   cycleCount      Int           @default(0)
@@ -89,6 +91,7 @@ model AiSession {
   messages        ChatMessage[]
 
   @@index([userId, createdAt])
+  @@index([userId, updatedAt, id])
   @@index([status, isVisible, nextEligibleAt])
 }
 
@@ -128,6 +131,7 @@ model AiSessionEvent {
   createdAt DateTime @default(now())
 
   @@index([sessionId, createdAt])
+  @@index([sessionId, id])
 }
 
 // ─── Usage ────────────────────────────────────────────────────────────────────

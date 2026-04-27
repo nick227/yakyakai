@@ -6,6 +6,8 @@ import compression from 'compression'
 import cookieParser from 'cookie-parser'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import swaggerUi from 'swagger-ui-express'
+import swaggerJsdoc from 'swagger-jsdoc'
 import { prisma } from './db/prisma.js'
 import { requireAuth } from './middleware/auth.js'
 import { apiRoutes } from './routes/index.js'
@@ -27,6 +29,25 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const clientDistPath = path.resolve(__dirname, '../../client/dist')
 
+// Swagger/OpenAPI configuration
+const swaggerOptions = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'YakyakAI API',
+      version: '1.0.0',
+      description: 'API documentation for YakyakAI',
+    },
+    servers: [
+      {
+        url: `http://localhost:${port}`,
+        description: 'Development server',
+      },
+    ],
+  },
+  apis: ['./src/routes/*.js'],
+}
+
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -47,6 +68,10 @@ app.use(compression())
 app.use(cors({ origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173', credentials: true }))
 app.use(express.json({ limit: '1mb' }))
 app.use(cookieParser())
+
+// Swagger UI for API documentation
+const swaggerSpec = swaggerJsdoc(swaggerOptions)
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 
 // ─── V2+ API (auth-gated) ────────────────────────────────────────────────────
 app.use('/api', apiRoutes)

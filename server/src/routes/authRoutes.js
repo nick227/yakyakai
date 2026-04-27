@@ -36,6 +36,44 @@ function publicUser(user) {
   }
 }
 
+/**
+ * @swagger
+ * /api/auth/register:
+ *   post:
+ *     summary: User registration
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *                 minLength: 8
+ *               name:
+ *                 type: string
+ *                 maxLength: 120
+ *     responses:
+ *       201:
+ *         description: User created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                 user:
+ *                   type: object
+ *       400:
+ *         description: Invalid input or user exists
+ */
 authRoutes.post('/register', authLimiter, route(async (req, res) => {
   const email = requireEmail(req.body?.email)
   const password = requirePassword(req.body?.password)
@@ -54,6 +92,40 @@ authRoutes.post('/register', authLimiter, route(async (req, res) => {
   res.status(201).json({ ok: true, user: publicUser(user) })
 }))
 
+/**
+ * @swagger
+ * /api/auth/login:
+ *   post:
+ *     summary: User login
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                 user:
+ *                   type: object
+ *       401:
+ *         description: Invalid credentials
+ */
 authRoutes.post('/login', authLimiter, route(async (req, res) => {
   const email = requireEmail(req.body?.email)
   const password = String(req.body?.password || '')

@@ -1,6 +1,7 @@
 import { Router } from 'express'
 
 import { authRoutes } from './authRoutes.js'
+import { creditRoutes } from './creditRoutes.js'
 import { usageRoutes } from './usageRoutes.js'
 import { jobRoutes } from './jobRoutes.js'
 import { sessionRoutes } from './sessionRoutes.js'
@@ -17,6 +18,7 @@ import { runtimeRoutesV5 } from './runtimeRoutes.v5.js'
 export const apiRoutes = Router()
 
 apiRoutes.use('/auth', authRoutes)
+apiRoutes.use('/credits', creditRoutes)
 apiRoutes.use('/usage', usageRoutes)
 apiRoutes.use('/jobs', jobRoutes)
 apiRoutes.use('/sessions', sessionRoutes)

@@ -44,9 +44,15 @@ Create a Prisma model:
   - `cycle` (int)
   - `kind` (`image` | `video`)
   - `provider` (`unsplash` | `youtube`)
+  - `sourcePrompt` (Text, nullable): prompt/topic used to derive `query` for this cycle
   - `query` (string)
   - `selectedIndex` (int)
+  - `providerAssetId` (string, nullable): provider identifier for debugging/dedupe
+    - YouTube: `videoId`
+    - Unsplash: `photo.id`
   - `assetJson` (LongText): provider payload (urls, ids, attribution)
+  - `status` (string): `ready` | `failed`
+  - `errorMessage` (Text, nullable)
   - `createdAt`
 
 Uniqueness:
@@ -133,6 +139,8 @@ Media generation runs as a **parallel system** to AI:
 
 ### Failure behavior
 
-- If provider fetch fails, do not publish.
+- If provider fetch fails:
+  - Persist a `failed` record (idempotent) with `errorMessage`
+  - Do not publish `EventTypes.MEDIA`
 - Retry should be safe due to `@@unique([sessionId, cycle, kind])`.
 

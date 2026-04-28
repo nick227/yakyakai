@@ -47,11 +47,15 @@
 .composer-shell {
   width: min(100%, 760px);
   margin-inline: auto;
-  border: 1px solid var(--color-line-strong);
+  border: 1px solid transparent;
   border-radius: var(--radius-xl);
   background: color-mix(in srgb, var(--color-surface) 96%, transparent);
-  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.22);
   overflow: hidden;
+}
+
+.composer-shell:focus-within {
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--color-line-strong);
 }
 
 .composer-footer {

@@ -5,7 +5,8 @@ import { requireAuth } from '../middleware/auth.js'
 import { route } from '../lib/route.js'
 import { getCredits } from '../services/usageService.js'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY
+const stripe = stripeSecretKey ? new Stripe(stripeSecretKey) : null
 
 export const creditRoutes = Router()
 
@@ -17,12 +18,23 @@ const PACKS = {
   power:   { credits: 1500000, label: 'Power',     priceUsd: 49 },
 }
 
+function requireStripe(res) {
+  if (stripe) return true
+  return res.status(503).json({
+    ok: false,
+    error: 'STRIPE_NOT_CONFIGURED',
+    message: 'Stripe is not configured on this server.',
+  })
+}
+
 creditRoutes.get('/', requireAuth, route(async (req, res) => {
   const credits = await getCredits(req.user.id)
   res.json({ ok: true, ...credits, packs: PACKS })
 }))
 
 creditRoutes.post('/purchase', requireAuth, route(async (req, res) => {
+  if (!requireStripe(res)) return
+
   const packId = req.body?.packId
   const pack = PACKS[packId]
   if (!pack) {
@@ -76,6 +88,8 @@ creditRoutes.post('/purchase', requireAuth, route(async (req, res) => {
 }))
 
 creditRoutes.post('/webhook', route(async (req, res) => {
+  if (!requireStripe(res)) return
+
   const sig = req.headers['stripe-signature']
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
 

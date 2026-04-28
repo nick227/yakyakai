@@ -51,11 +51,11 @@
   border-radius: var(--radius-xl);
   background: color-mix(in srgb, var(--color-surface) 96%, transparent);
   overflow: hidden;
+  transition: box-shadow 0.2s ease-in-out;
 }
 
 .composer-shell:focus-within {
-  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.22);
-  border: 1px solid var(--color-line-strong);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.12);
 }
 
 .composer-footer {

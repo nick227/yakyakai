@@ -65,7 +65,7 @@ sessionRoutes.get('/', requireAuth, route(async (req, res) => {
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
     take: take + 1,
-    select: { id: true, title: true, status: true, createdAt: true, cycleCount: true },
+    select: { id: true, title: true, status: true, createdAt: true, cycleCount: true, promptCount: true },
   })
   const hasMore = sessions.length > take
   const items = hasMore ? sessions.slice(0, take) : sessions
@@ -529,7 +529,7 @@ sessionRoutes.post('/:sessionId/pause', requireAuth, route(async (req, res) => {
   const sessionId = requireId(req.params.sessionId, 'sessionId')
   await assertOwnsSession(req.user.id, sessionId)
 
-  await Promise.all([
+  await prisma.$transaction([
     prisma.job.updateMany({
       where: { sessionId, status: 'queued', type: { in: ['session.cycle', 'session.start'] } },
       data: { status: 'cancelled' },

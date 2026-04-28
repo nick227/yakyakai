@@ -2,7 +2,12 @@
 
 ## Purpose
 
-Every other cycle (even cycles: 2, 4, 6, …), the worker injects one Unsplash image and one YouTube video into the chat stream. The **image appears first** (before the AI plan steps) and the **video appears last** (after the AI plan steps complete). Both are persisted as normal `ChatMessage` rows and published as standard `OUTPUT` SSE events.
+The worker injects media into the chat stream:
+- **Image** (`unsplash`) each cycle
+- **Video** (`youtube`) each cycle
+- **GIF** (`giphy`) every other cycle (even cycles: 2, 4, 6, ...)
+
+Each media item is persisted as a normal `ChatMessage` row and published as a standard `OUTPUT` SSE event.
 
 **What the user sees:**
 ```
@@ -18,17 +23,18 @@ AI plan step 2 ...
 
 ## Trigger
 
-`sessionRunner.js` calls `insertMediaForCycle` twice per even cycle — once for `image` before the plan, once for `video` after.
+`sessionRunner.js` calls `insertMediaForCycle` for `image`, `video`, and `giphy` each cycle.
 
 ```
 runSessionJob (every cycle)
-  └── insertMediaForCycle(kind='image')   ← before AI response
+  └── insertMediaForCycle(kind='image')
+  └── insertMediaForCycle(kind='video')
+  └── insertMediaForCycle(kind='giphy')
   └── buildPlan
   └── runPlanCycle
-  └── insertMediaForCycle(kind='video')   ← after AI response
 ```
 
-Gate: both calls skip when `cycle % 2 !== 0`. Odd cycles produce no media.
+Gate: `giphy` skips when `cycle % 2 !== 0`. Odd cycles produce no GIF.
 
 ---
 
@@ -46,6 +52,7 @@ insertMediaForCycle(kind)   ← called separately for 'image' and 'video'
   │
   ├── fetchUnsplashImage(query)   if kind='image'
   ├── fetchYouTubeVideo(query)    if kind='video'
+  ├── fetchGiphy(query)           if kind='giphy'
   │
   ├── [return silently] fetch error or session blocked
   │
@@ -67,8 +74,8 @@ Idempotency record. Prevents duplicate `ChatMessage` rows and duplicate SSE even
 | Field | Value |
 |---|---|
 | `sessionId` + `cycle` + `kind` | Unique composite key |
-| `kind` | `video` |
-| `provider` | `youtube` |
+| `kind` | `image` / `video` / `giphy` |
+| `provider` | `unsplash` / `youtube` / `giphy` |
 | `query` | Search string used |
 | `providerAssetId` | YouTube video ID |
 | `assetJson` | Raw provider response |
@@ -109,7 +116,9 @@ Idempotency record. Prevents duplicate `ChatMessage` rows and duplicate SSE even
 ## Environment variables
 
 ```
+UNSPLASH_ACCESS_KEY=  # Unsplash API
 YOUTUBE_API_KEY=   # Google Cloud → YouTube Data API v3
+GIPHY_API_KEY=     # Giphy API
 ```
 
 If missing the fetch throws, the error is logged as `[media] fetch failed`, and the cycle continues without media.

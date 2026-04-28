@@ -19,7 +19,17 @@ function relativeTime(dateStr) {
 export default function Profile({ user, onLogout }) {
   const [sessions, setSessions] = useState([])
   const [loading, setLoading] = useState(true)
-  const [stats, setStats] = useState({ totalSessions: 0, remainingCredits: 0, creditsUsed: 0 })
+  const [stats, setStats] = useState({
+    totalSessions: 0,
+    totalPrompts: 0,
+    premiumCredits: 0,
+    freeCreditsUsed: 0,
+    freeCreditsLimit: 0,
+    tokensUsed: 0,
+    avgPromptsPerSession: 0,
+    avgTokensPerSession: 0,
+    accountAge: '',
+  })
   const [showPasswordReset, setShowPasswordReset] = useState(false)
   const [showCreditsModal, setShowCreditsModal] = useState(false)
   const [resetEmail, setResetEmail] = useState('')
@@ -28,6 +38,7 @@ export default function Profile({ user, onLogout }) {
   useEffect(() => {
     loadSessions()
     loadCredits()
+    loadUsage()
   }, [])
 
   const loadSessions = async () => {
@@ -36,9 +47,13 @@ export default function Profile({ user, onLogout }) {
       const items = res.sessions || []
       setSessions(items)
       
-      const totalSessions = items.length
+      console.log('Session items:', items)
       
-      setStats(prev => ({ ...prev, totalSessions }))
+      const totalSessions = items.length
+      const totalPrompts = items.reduce((acc, s) => acc + (s.promptCount || 0), 0)
+      const avgPromptsPerSession = totalSessions > 0 ? (totalPrompts / totalSessions).toFixed(1) : 0
+      
+      setStats(prev => ({ ...prev, totalSessions, totalPrompts, avgPromptsPerSession }))
     } catch (err) {
       console.error('Failed to load sessions:', err)
     } finally {
@@ -49,13 +64,43 @@ export default function Profile({ user, onLogout }) {
   const loadCredits = async () => {
     try {
       const creditsData = await api.getCredits()
-      const remainingCredits = creditsData.creditBalance || 0
-      const creditsUsed = creditsData.promptsUsed || 0
-      setStats(prev => ({ ...prev, remainingCredits, creditsUsed }))
+      const premiumCredits = creditsData.creditBalance || 0
+      const freeCreditsUsed = creditsData.promptsUsed || 0
+      const freeCreditsLimit = creditsData.promptLimit || 1000
+      console.log('Credits data:', creditsData)
+      setStats(prev => ({ ...prev, premiumCredits, freeCreditsUsed, freeCreditsLimit }))
     } catch (err) {
       console.error('Failed to load credits:', err)
     }
   }
+
+  const loadUsage = async () => {
+    try {
+      const usageData = await getUsage()
+      const tokensUsed = usageData.estimatedTokensUsed || 0
+      console.log('Usage data:', usageData)
+      setStats(prev => ({ ...prev, tokensUsed }))
+    } catch (err) {
+      console.error('Failed to load usage:', err)
+    }
+  }
+
+  // Calculate derived metrics when dependencies change
+  useEffect(() => {
+    if (stats.totalSessions > 0 && stats.tokensUsed > 0) {
+      const avgTokensPerSession = (stats.tokensUsed / stats.totalSessions).toFixed(0)
+      setStats(prev => ({ ...prev, avgTokensPerSession }))
+    }
+    
+    if (user?.createdAt) {
+      const joinDate = new Date(user.createdAt)
+      const now = new Date()
+      const diffTime = Math.abs(now - joinDate)
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+      const accountAge = diffDays === 1 ? '1 day' : `${diffDays} days`
+      setStats(prev => ({ ...prev, accountAge }))
+    }
+  }, [stats.totalSessions, stats.tokensUsed, user?.createdAt])
 
   const handleLogout = async () => {
     await onLogout()
@@ -96,30 +141,39 @@ export default function Profile({ user, onLogout }) {
           </div>
         </div>
 
-        {/* Stats grid - game style */}
-        <div className="profile-stats-grid">
-          <div className="stat-card pixel-border">
-            <div className="stat-icon">
-              <Gamepad2 size={20} />
-            </div>
-            <div className="stat-value">{stats.totalSessions}</div>
-            <div className="stat-label">Sessions</div>
+        {/* Stats table */}
+        <div className="profile-stats-table">
+          <div className="stats-table-row">
+            <div className="stats-table-cell stats-label">Total Sessions</div>
+            <div className="stats-table-cell stats-value">{stats.totalSessions}</div>
           </div>
-          
-          <div className="stat-card pixel-border">
-            <div className="stat-icon">
-              <Zap size={20} />
-            </div>
-            <div className="stat-value">{stats.remainingCredits}</div>
-            <div className="stat-label">Credits</div>
+          <div className="stats-table-row">
+            <div className="stats-table-cell stats-label">Total Prompts</div>
+            <div className="stats-table-cell stats-value">{stats.totalPrompts}</div>
           </div>
-          
-          <div className="stat-card pixel-border">
-            <div className="stat-icon">
-              <Trophy size={20} />
-            </div>
-            <div className="stat-value">{stats.creditsUsed}</div>
-            <div className="stat-label">Used This Month</div>
+          <div className="stats-table-row">
+            <div className="stats-table-cell stats-label">Avg Prompts/Session</div>
+            <div className="stats-table-cell stats-value">{stats.avgPromptsPerSession}</div>
+          </div>
+          <div className="stats-table-row">
+            <div className="stats-table-cell stats-label">Premium Credits</div>
+            <div className="stats-table-cell stats-value">{stats.premiumCredits}</div>
+          </div>
+          <div className="stats-table-row">
+            <div className="stats-table-cell stats-label">Free Credits (Month)</div>
+            <div className="stats-table-cell stats-value">{stats.freeCreditsUsed} / {stats.freeCreditsLimit}</div>
+          </div>
+          <div className="stats-table-row">
+            <div className="stats-table-cell stats-label">Tokens Used (Month)</div>
+            <div className="stats-table-cell stats-value">{(stats.tokensUsed / 1000).toFixed(1)}k</div>
+          </div>
+          <div className="stats-table-row">
+            <div className="stats-table-cell stats-label">Avg Tokens/Session</div>
+            <div className="stats-table-cell stats-value">{stats.avgTokensPerSession}</div>
+          </div>
+          <div className="stats-table-row">
+            <div className="stats-table-cell stats-label">Account Age</div>
+            <div className="stats-table-cell stats-value">{stats.accountAge}</div>
           </div>
         </div>
 

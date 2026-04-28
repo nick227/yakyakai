@@ -33,14 +33,14 @@ export async function runSessionJob(job, { publish }) {
   await prisma.aiSession.update({ where: { id: sessionId }, data: { status: 'running' } })
   await publish(sessionId, EventTypes.STATUS, { status: isFirstCycle ? 'planning' : 'expanding', cycle: currentCycle })
 
-  const mediaPrompt = session.currentPrompt || session.originalPrompt
-  await insertMediaForCycle({ sessionId, cycle: currentCycle, prompt: mediaPrompt, publish, kind: 'image' })
-  await insertMediaForCycle({ sessionId, cycle: currentCycle, prompt: mediaPrompt, publish, kind: 'video' })
-  await insertMediaForCycle({ sessionId, cycle: currentCycle, prompt: mediaPrompt, publish, kind: 'giphy' })
+  let mediaPrompt = session.currentPrompt || session.originalPrompt
 
   let plan
   try {
     if (isFirstCycle) {
+      await insertMediaForCycle({ sessionId, cycle: currentCycle, prompt: mediaPrompt, publish, kind: 'video' })
+      // await insertMediaForCycle({ sessionId, cycle: currentCycle, prompt: mediaPrompt, publish, kind: 'image' })
+      // await insertMediaForCycle({ sessionId, cycle: currentCycle, prompt: mediaPrompt, publish, kind: 'giphy' })
       plan = await buildInitialPlan({ session, sessionId, jobId: job.id, publish })
       await prisma.aiSession.update({
         where: { id: sessionId },
@@ -50,6 +50,10 @@ export async function runSessionJob(job, { publish }) {
       const currentPrompt = session.currentPrompt || session.originalPrompt
       const nextPrompt = await getNextPrompt({ session, sessionId, jobId: job.id, currentPrompt })
       await prisma.aiSession.update({ where: { id: sessionId }, data: { currentPrompt: nextPrompt } })
+      mediaPrompt = nextPrompt
+      await insertMediaForCycle({ sessionId, cycle: currentCycle, prompt: mediaPrompt, publish, kind: 'video' })
+      // await insertMediaForCycle({ sessionId, cycle: currentCycle, prompt: mediaPrompt, publish, kind: 'image' })
+      // await insertMediaForCycle({ sessionId, cycle: currentCycle, prompt: mediaPrompt, publish, kind: 'giphy' })
       plan = await buildCyclePlan({ session, sessionId, jobId: job.id, currentCycle, publish, currentPrompt: nextPrompt })
       await prisma.aiSession.update({ where: { id: sessionId }, data: { promptCount: plan.steps.length } })
     }

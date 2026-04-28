@@ -39,7 +39,6 @@ export async function claimNextJob(workerId = 'worker-1') {
   })
 
   if (!candidate) {
-    console.log('[jobQueue] No eligible jobs found', { workerId, now })
     return null
   }
 

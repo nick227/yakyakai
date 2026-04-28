@@ -44,30 +44,32 @@ const chartPrompts = [
 
     'Use Frappe Charts to create a pie chart using <div class="yk-chart" data-type="pie" data-labels=\'["Part1","Part2"]\' data-values=\'[60,40]\'>. Show how the subject is divided into parts using clear proportions and meaningful categories.',
 
-    'Use Mermaid to create a relationship diagram using <pre class="mermaid">. Write a valid graph LR diagram with clearly labeled nodes and connections representing key elements.</pre>'
+    'Use Mermaid to create a relationship diagram using <pre class="mermaid">. Write a valid graph LR diagram with clearly labeled nodes and connections representing key elements.</pre>', 
+
+    'Create a spacious beautiful and informative table of data points that clearly illustrates the concept with labeled rows and columns.',
+    
+    'Use Typed.js to create a bold hero headline using <div class="yk-typed" data-strings=\'["Phrase1","Phrase2","Phrase3"]\'>. Replace phrases with 3–5 short, meaningful statements that express key ideas about the subject. Keep phrases concise and impactful.',
+
+    'Start this section with MASSIVE extra-large fonts and bold text to make a strong visual impact.',
+
+    'Use the canvas element to create a simple and clean graphic that illustrates the concept or idea.',
+
+    'Summarize the concept or idea in < 50 words.',
+
+    'Include a relevant quote from a famous person or historical figure to add depth and credibility.'
   ]
 
-const effectPrompts = [
-'Use Typed.js to create a bold hero headline using <div class="yk-typed" data-strings=\'["Phrase1","Phrase2","Phrase3"]\'>. Replace phrases with 3–5 short, meaningful statements that express key ideas about the subject. Keep phrases concise and impactful.',
-
-'Create an old computer terminal style retro screen using rough.js lo-fi pixel art vibe style. Use large print text and stacked lines for a classic terminal look.',
-
-'Create a table of data points that clearly illustrates the concept with labeled rows and columns.',
-  
-'Use a bold typographic hero with large font sizes to emphasize a key idea.'
-]
 
 // Used by the process agent to generate final HTML content.
 const PROCESS_SYSTEM = `
 You design premium content about the user submitted subject. 
 
 Rules: 
-- Return HTML fragment only (no markdown, no explanations).. 
-- Use Tailwind classes for styling. 
-- Default output cadence: Title -> subtitle -> primary block.
+- Return clean minimal HTML fragment only (no markdown, no explanations).
 - Prioritize scanability and consistency. 
 - Avoid generic, consultant-speak, jargon-heavy, or unrealistic ideas. 
 - Always do a final font color contrast check to ensure readability.
+- Default output cadence: Title -> subtitle -> primary block.
 `
 
 // Builds planner payload.
@@ -82,13 +84,8 @@ export function buildPlannerPrompt({ subject, promptCount }) {
 let counter = 0;
 export function buildProcessPrompt({ prompt }) {
   const chartIndex = counter % chartPrompts.length
-  const effectIndex = Math.floor(counter / 2) % effectPrompts.length
-  const extraInstructions =
-  chartPrompts[chartIndex] +
-  (counter % 2
-    ? '\n\n' + effectPrompts[effectIndex]
-    : '')
-
+  const extraInstructions = chartPrompts[Math.floor(Math.random() * chartPrompts.length)];
+  
   counter++;
   return {
     system: PROCESS_SYSTEM + '\n\n' + extraInstructions,

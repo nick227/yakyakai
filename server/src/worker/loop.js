@@ -8,6 +8,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms))
 
 export async function startLoop({ workerId, publish, shouldStop, setActive }) {
   let lastWatchdog = 0
+  let delay = 600
   logger.info('Worker started', { workerId })
 
   while (!shouldStop()) {
@@ -23,10 +24,13 @@ export async function startLoop({ workerId, publish, shouldStop, setActive }) {
 
       const job = await claimNextJob(workerId)
       if (!job) {
-        await wait(600)
+        delay = Math.min(delay * 1.5, 4000)
+        const jitter = delay * 0.2 * (Math.random() * 2 - 1)
+        await wait(delay + jitter)
         continue
       }
 
+      delay = 600
       setActive(true)
       const result = await processJob(job, { publish, workerId })
       if (result.completed) {

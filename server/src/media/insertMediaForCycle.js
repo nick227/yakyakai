@@ -1,9 +1,18 @@
 import { prisma } from '../db/prisma.js'
 import { EventTypes } from '../lib/eventTypes.js'
 
-function buildQuery(prompt) {
-  const raw = String(prompt || '').trim()
-  return raw.length > 90 ? raw.slice(0, 90) : raw
+const KIND_MODS = {
+  image: ['scenic', 'vibrant', 'aerial', 'closeup', 'dramatic', 'minimal', 'cinematic', 'natural'],
+  video: ['documentary', 'tutorial', 'explained', 'timelapse', 'overview', 'guide', 'introduction'],
+  giphy: ['funny', 'cute', 'excited', 'animated', 'reaction', 'happy', 'wow'],
+}
+
+function buildQuery(prompt, kind) {
+  const words = String(prompt || '').trim().split(/\s+/).filter(Boolean)
+  const shuffled = words.sort(() => Math.random() - 0.5).slice(0, 6)
+  const mods = KIND_MODS[kind] || KIND_MODS.image
+  const mod = mods[Math.floor(Math.random() * mods.length)]
+  return [...shuffled, mod].join(' ').slice(0, 90)
 }
 
 async function fetchUnsplashImage(query) {
@@ -104,7 +113,7 @@ export async function insertMediaForCycle({ sessionId, cycle, prompt, publish, k
     return
   }
 
-  const query = buildQuery(prompt)
+  const query = buildQuery(prompt, kind)
   console.log('[media] query', { sessionId, cycle, kind, query })
 
   let asset

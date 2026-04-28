@@ -2,9 +2,9 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Add a deterministic, cycle-cadenced media runtime that emits persisted `MEDIA` feed items (image + video every 2 cycles) without touching AI HTML.
+**Goal:** Add a deterministic, cycle-cadenced media runtime that emits persisted **media `ChatMessage` rows** (image + video every 2 cycles) so the client renders them as normal chat history HTML.
 
-**Architecture:** Create an idempotent `AiMediaItem` table keyed by `(sessionId, cycle, kind)`, a media runtime that generates or re-publishes items per cycle, provider adapters (fake first, real later), and client rendering for `EventTypes.MEDIA`.
+**Architecture:** Create an idempotent `AiMediaItem` table keyed by `(sessionId, cycle, kind)`, a media runtime that generates or re-publishes items per cycle, provider adapters (fake first, real later), and a deterministic embed-html builder that stores the result as a normal `ChatMessage` (with media metadata) and publishes it through the existing SSE message pathway.
 
 **Tech Stack:** Node (ESM), Express, Prisma (MySQL), SSE events, React client.
 
@@ -111,36 +111,36 @@ Run:
 
 ---
 
-### Task 2: Add `EventTypes.MEDIA` end-to-end (server + client)
+### Task 2: Allow deterministic media embed HTML in chat history
 
 **Files:**
-- Modify: `server/src/lib/eventTypes.js`
-- Modify: `client/src/lib/eventTypes.js`
-- Modify: `client/src/hooks/useOutputs.js`
-- Modify: `client/src/components/ChatStream.jsx`
-- Test: `client/src/lib/eventTypes.test.js` (optional) OR `server/src/tests/eventTypes.test.js` (optional)
+- Modify: `client/src/hooks/useOutputs.js` (if needed; depends on how chat messages are streamed today)
+- Modify: `client/src/components/ChatStream.jsx` (if needed; mostly should already render assistant HTML)
+- Modify: `client` sanitization policy (DOMPurify usage) to explicitly allow the chosen tags/attrs for embeds
 
-**Step 1: Add event constant**
+**Step 1: Decide allowed embed strategy**
 
-- Add `MEDIA: 'media'` to both server and client `EventTypes`.
+Start minimal and safe:
+- **Image**: `<img src>` inside a small wrapper.
+- **Video**: thumbnail `<img>` linking to YouTube (no `<iframe>` initially).
 
-**Step 2: Wire client SSE handler**
+This avoids expanding sanitizer surface area to iframes on day 1.
 
-Update `useOutputs`:
-- On `EventTypes.MEDIA`, append to the same `chatMessages` stream as a distinct `role` or a metadata flag (e.g. `{ isMedia: true, kind, provider }`).
-- Keep it renderable without HTML injection.
+**Step 2: Update client sanitization**
 
-**Step 3: Render media item**
+Wherever assistant HTML is sanitized (DOMPurify usage), ensure it allows:
+- tags: `img`, `figure`, `figcaption`, `a` (if used)
+- attrs: `src`, `alt`, `href`, `rel`, `target`, `loading`, `referrerpolicy`
 
-Update `ChatStream.jsx`:
-- If `metadata.isMedia`, render a `MediaMessage` component:
-  - For image: `<img src=... />` (UI-owned, sanitized)
-  - For video: thumbnail + link or embed decision (start with thumbnail link to YouTube for simplicity)
+**Step 3: Rendering**
+
+No special renderer required if these messages are normal assistant chat messages.
+Optionally style media messages by checking `metadata.isMedia`.
 
 **Step 4: Commit**
 
-- `git add server/src/lib/eventTypes.js client/src/lib/eventTypes.js client/src/hooks/useOutputs.js client/src/components/ChatStream.jsx`
-- `git commit -m "Add MEDIA SSE event and client rendering."`
+- `git add client/src/hooks/useOutputs.js client/src/components/ChatStream.jsx <the file where DOMPurify config lives>`
+- `git commit -m "Allow deterministic media embeds in chat HTML."`
 
 ---
 
@@ -222,7 +222,10 @@ Later, this can become its own job type.
 
 Algorithm per `(sessionId, cycle, kind)`:
 - `findUnique` by composite key
-- If exists and `status==='ready'`: publish it and return
+- If exists and `status==='ready'`:
+  - ensure corresponding `ChatMessage` exists (idempotent)
+  - publish that `ChatMessage` like a normal assistant message
+  - return
 - If exists and `status==='failed'`: do nothing (or allow retry later by policy)
 - Else:
   - `checkPlanState` gate
@@ -231,7 +234,8 @@ Algorithm per `(sessionId, cycle, kind)`:
   - deterministic pick + build `providerAssetId`
   - persist with `create`
   - on unique race: read existing
-  - publish `EventTypes.MEDIA`
+  - create media `ChatMessage` with deterministic embed HTML + metadata
+  - publish that `ChatMessage` like a normal assistant message
 
 On provider failure:
 - persist `status='failed'` with `errorMessage`

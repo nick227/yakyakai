@@ -29,6 +29,10 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const clientDistPath = path.resolve(__dirname, '../../client/dist')
 
+// Railway/other reverse proxies set X-Forwarded-* headers.
+// Trust the first proxy so rate limiting and client IP detection work correctly.
+app.set('trust proxy', 1)
+
 // Swagger/OpenAPI configuration
 const swaggerOptions = {
   definition: {

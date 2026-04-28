@@ -9,6 +9,7 @@ import { isAbortError } from '../services/sessionAbortService.js'
 import { MAX_CYCLES } from './constants.js'
 import { buildCyclePlan, buildInitialPlan, getNextPrompt } from './planning.js'
 import { runPlanCycle } from '../ai/planRuntime.js'
+import { insertMediaForCycle } from '../media/insertMediaForCycle.js'
 
 async function getSessionStatus(sessionId) {
   const s = await prisma.aiSession.findUnique({ where: { id: sessionId }, select: { status: true } })
@@ -33,6 +34,7 @@ export async function runSessionJob(job, { publish }) {
   await publish(sessionId, EventTypes.STATUS, { status: isFirstCycle ? 'planning' : 'expanding', cycle: currentCycle })
 
   let plan
+  let promptForMedia = session.originalPrompt
   try {
     if (isFirstCycle) {
       plan = await buildInitialPlan({ session, sessionId, jobId: job.id, publish })
@@ -43,6 +45,7 @@ export async function runSessionJob(job, { publish }) {
     } else {
       const currentPrompt = session.currentPrompt || session.originalPrompt
       const nextPrompt = await getNextPrompt({ session, sessionId, jobId: job.id, currentPrompt })
+      promptForMedia = nextPrompt
       await prisma.aiSession.update({ where: { id: sessionId }, data: { currentPrompt: nextPrompt } })
       plan = await buildCyclePlan({ session, sessionId, jobId: job.id, currentCycle, publish, currentPrompt: nextPrompt })
       await prisma.aiSession.update({ where: { id: sessionId }, data: { promptCount: plan.steps.length } })
@@ -84,6 +87,8 @@ export async function runSessionJob(job, { publish }) {
     bus.cleanup(sessionId)
     return
   }
+
+  await insertMediaForCycle({ sessionId, cycle: currentCycle, prompt: promptForMedia, publish })
 
   const afterSession = await prisma.aiSession.findUnique({ where: { id: sessionId }, select: { status: true } })
   if (!afterSession || afterSession.status === 'cancelled') {

@@ -121,6 +121,7 @@ const ChatMessage = memo(function ChatMessage({ msg, index }) {
   const isUser = msg.role === 'USER'
   const metadata = parseMetadataSafe(msg.metadata)
   const isNotice = metadata.isNotice
+  const isMedia = metadata.isMedia
   
   if (isUser) {
     return (
@@ -144,6 +145,21 @@ const ChatMessage = memo(function ChatMessage({ msg, index }) {
     )
   }
   
+  if (isMedia) {
+    const safe = DOMPurify.sanitize(msg.content || '', {
+      ADD_ATTR: ['target', 'rel', 'class', 'loading', 'referrerpolicy'],
+      ADD_TAGS: ['img'],
+    })
+    return (
+      <article className='chat-message media-message'>
+        <div className="msg-avatar" aria-hidden="true"><Bot size={13} /></div>
+        <div className="msg-content">
+          <div className="chat-message-body" dangerouslySetInnerHTML={{ __html: safe }} />
+        </div>
+      </article>
+    )
+  }
+
   return (
     <article className='chat-message'>
       <div className="msg-avatar" aria-hidden="true"><Bot size={13} /></div>

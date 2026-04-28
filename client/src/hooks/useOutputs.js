@@ -47,7 +47,11 @@ export function useOutputs(riverRef, onScrollToBottom) {
         setChatMessages((prev) => {
           const messageId = ev.payload?.messageId
           if (messageId && prev.some(m => m.id === messageId)) return prev
-          const metadata = { cycle: ev.payload?.cycle, index: ev.payload?.index }
+          const metadata = {
+            cycle: ev.payload?.cycle,
+            index: ev.payload?.index,
+            ...(ev.payload?.isMedia ? { isMedia: true, kind: ev.payload?.kind, provider: ev.payload?.provider } : {}),
+          }
           return [...prev, {
             id: messageId,
             clientId: messageId || `live-${ev.ts || Date.now()}-${ev.payload?.index ?? prev.length}`,

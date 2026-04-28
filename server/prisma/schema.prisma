@@ -42,6 +42,12 @@ enum MessageRole {
   ASSISTANT
 }
 
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
 model User {
@@ -61,6 +67,7 @@ model User {
 
   sessions     AiSession[]
   usageLedger  UsageLedger[]
+  creditTransactions CreditTransaction[]
 
   @@index([email])
 }
@@ -266,4 +273,40 @@ model SavedOutput {
 
   @@index([userId, createdAt])
   @@index([sessionId])
+}
+
+// ─── Media ───────────────────────────────────────────────────────────────────────
+
+model AiMediaItem {
+  id              Int      @id @default(autoincrement())
+  sessionId       String
+  cycle           Int
+  kind            String
+  provider        String
+  query           String
+  providerAssetId String
+  assetJson       String   @db.LongText
+  htmlContent     String   @db.LongText
+  createdAt       DateTime @default(now())
+
+  @@unique([sessionId, cycle, kind])
+  @@index([sessionId])
+}
+
+// ─── Credits & Payments ─────────────────────────────────────────────────────────
+
+model CreditTransaction {
+  id              String             @id @default(cuid())
+  userId          String
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount          Int
+  packId          String
+  stripeSessionId String?            @unique
+  status          TransactionStatus  @default(PENDING)
+  amountUsd       Int
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([stripeSessionId])
 }

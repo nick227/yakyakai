@@ -7,15 +7,52 @@ import ChatStream from './components/ChatStream.jsx'
 import RunComposer from './components/RunComposer.jsx'
 import AdminView from './components/AdminView.jsx'
 import SessionSidebar from './components/SessionSidebar.jsx'
+import HydratorLibraryTest from './components/HydratorLibraryTest.jsx'
+import Profile from './components/Profile.jsx'
 import { useAppController } from './hooks/useAppController.js'
 import { useAuth } from './hooks/useAuth.js'
 
+const isHydratorSmokeEnabled = () => {
+  if (typeof window === 'undefined') return false
+  return new URLSearchParams(window.location.search).get('hydratorTest') === '1'
+}
+
+const isHydratorLibraryTestEnabled = () => {
+  if (typeof window === 'undefined') return false
+  return new URLSearchParams(window.location.search).get('hydratorLibTest') === '1'
+}
+
 function App({ user, onLogout }) {
   const { state, actions, derived } = useAppController()
+  const showHydratorSmoke = isHydratorSmokeEnabled()
+  const showHydratorLibraryTest = isHydratorLibraryTestEnabled()
 
   const handleLogout = useCallback(async () => {
     onLogout()
   }, [onLogout])
+
+  const handleProfileClick = useCallback(() => {
+    actions.navigateToProfile()
+  }, [actions])
+
+  if (state.isProfile) {
+    return (
+      <AppFrame
+        user={user}
+        status={state.status}
+        showAdmin={state.uiState.showAdmin}
+        onAdmin={actions.toggleAdmin}
+        onLogout={handleLogout}
+        onSidebar={actions.openSidebar}
+        onProfile={handleProfileClick}
+      >
+        <Profile 
+          user={user} 
+          onLogout={handleLogout}
+        />
+      </AppFrame>
+    )
+  }
 
   return (
     <AppFrame
@@ -25,7 +62,12 @@ function App({ user, onLogout }) {
       onAdmin={actions.toggleAdmin}
       onLogout={handleLogout}
       onSidebar={actions.openSidebar}
+      onProfile={handleProfileClick}
     >
+      {showHydratorLibraryTest ? (
+        <HydratorLibraryTest />
+      ) : (
+        <>
       <SessionSidebar
         isOpen={state.uiState.showSidebar}
         currentSessionId={state.sessionId}
@@ -50,6 +92,7 @@ function App({ user, onLogout }) {
             isLoadingMessages={state.isLoadingMessages}
             sessionNotFound={state.uiState.sessionNotFound}
             onNewChat={actions.startNewChat}
+            showHydratorSmoke={showHydratorSmoke}
           />
           <RunComposer
             prompt={state.prompt}
@@ -74,6 +117,8 @@ function App({ user, onLogout }) {
             onStop={actions.stopRun}
           />
         </main>
+      )}
+        </>
       )}
     </AppFrame>
   )

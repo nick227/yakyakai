@@ -10,6 +10,7 @@ const AppFrame = memo(function AppFrame({
   onAdmin,
   onLogout,
   onSidebar,
+  onProfile,
 }) {
   const live = !TERMINAL_STATUSES.has(status) && status !== RUN_STATUS.PAUSED
 
@@ -56,10 +57,10 @@ const AppFrame = memo(function AppFrame({
             {user && (
               <button
                 className="avatar-button"
-                onClick={onLogout}
+                onClick={onProfile || onLogout}
                 type="button"
-                title={`${user.name || user.email} — click to sign out`}
-                aria-label="Sign out"
+                title={`${user.name || user.email} — view profile`}
+                aria-label="View profile"
               >
                 {user.avatarUrl
                   ? <img src={user.avatarUrl} alt={user.name || user.email} referrerPolicy="no-referrer" />

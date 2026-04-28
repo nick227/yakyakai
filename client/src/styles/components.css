@@ -725,6 +725,70 @@
   font-size: var(--text-sm);
 }
 
+/* ── Streaming skeleton loader ─────────────────────────────────────────────── */
+
+.skeleton-message {
+  opacity: 0.95;
+}
+
+.skeleton-header {
+  margin-bottom: var(--space-3);
+}
+
+.skeleton-pill,
+.skeleton-line {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-surface-3) 85%, transparent);
+}
+
+.skeleton-pill::after,
+.skeleton-line::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--color-accent-soft) 45%, transparent) 50%,
+    transparent 100%
+  );
+  animation: skeleton-shimmer 1.25s ease-in-out infinite;
+}
+
+.skeleton-pill {
+  width: 56px;
+  height: 20px;
+}
+
+.skeleton-body {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.skeleton-line {
+  height: 10px;
+}
+
+.skeleton-line-short {
+  width: 72%;
+}
+
+@keyframes skeleton-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-pill::after,
+  .skeleton-line::after {
+    animation: none;
+  }
+}
+
 /* ── Session drawer ──────────────────────────────────────────────────────────── */
 
 .session-drawer-backdrop {
@@ -921,4 +985,34 @@
   color: var(--color-text);
   font-size: var(--text-sm);
   outline: none;
+}
+
+.yk-chart,
+.frappe-chart,
+.frappe-pie-chart,
+.yk-apex-chart,
+.yk-chartjs,
+.yk-typed,
+.yk-rough,
+.yk-particles,
+.yk-mermaid,
+.mermaid {
+  margin: var(--space-4) 0;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-2);
+  overflow: hidden;
+  min-height: 80px;
+}
+
+.yk-chart[data-ready="1"],
+.frappe-chart[data-ready="1"],
+.frappe-pie-chart[data-ready="1"],
+.yk-apex-chart[data-ready="1"],
+.yk-chartjs[data-ready="1"],
+.yk-typed[data-ready="1"],
+.yk-rough[data-ready="1"],
+.yk-particles[data-ready="1"],
+.yk-mermaid[data-ready="1"],
+.mermaid[data-ready="1"] {
+  background: transparent;
 }

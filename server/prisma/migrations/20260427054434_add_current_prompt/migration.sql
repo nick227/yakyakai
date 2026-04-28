@@ -27,10 +27,10 @@ DROP TABLE IF EXISTS `agentoutput`;
 DROP TABLE IF EXISTS `explorationprompt`;
 
 -- DropTable
-DROP TABLE IF EXISTS `session`;
+DROP TABLE IF EXISTS `sessionevent`;
 
 -- DropTable
-DROP TABLE IF EXISTS `sessionevent`;
+DROP TABLE IF EXISTS `session`;
 
 -- CreateIndex
 CREATE INDEX `ChatMessage_sessionId_role_idx` ON `ChatMessage`(`sessionId`, `role`);

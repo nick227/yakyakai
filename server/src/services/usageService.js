@@ -4,6 +4,8 @@ import { countPrompt } from '../utils/tokenEstimate.js'
 import { currentMonthWindow } from '../utils/monthWindow.js'
 import { contentTooLarge, paymentRequired } from '../lib/httpError.js'
 
+const CREDITS_PER_TOKEN = Number(process.env.CREDITS_PER_TOKEN) || 1000
+
 // Per-user in-flight counter — prevents double-spending under concurrent calls
 const inFlight = new Map()
 
@@ -69,13 +71,14 @@ export async function assertCanSpendPrompt({ userId, prompt }) {
   const pending = inFlight.get(userId) || 0
 
   if (usage.promptsUsed + pending > usageLimits.freeMonthlyPromptLimit) {
-    // Monthly limit exceeded — atomically consume one purchased credit if available
+    // Monthly limit exceeded — atomically consume credits based on estimated tokens
+    const creditsNeeded = Math.ceil(estimatedPromptTokens / CREDITS_PER_TOKEN)
     const result = await prisma.user.updateMany({
-      where: { id: userId, creditBalance: { gt: 0 } },
-      data: { creditBalance: { decrement: 1 } },
+      where: { id: userId, creditBalance: { gte: creditsNeeded } },
+      data: { creditBalance: { decrement: creditsNeeded } },
     })
     if (result.count === 0) {
-      throw paymentRequired('PROMPT_LIMIT_REACHED', 'Monthly prompt limit reached.')
+      throw paymentRequired('CREDIT_LIMIT_REACHED', 'Insufficient credits for this request.')
     }
   }
 
@@ -83,7 +86,7 @@ export async function assertCanSpendPrompt({ userId, prompt }) {
     throw paymentRequired('TOKEN_LIMIT_REACHED', 'Monthly token limit reached.')
   }
 
-  return { promptChars, estimatedPromptTokens, usage }
+  return { promptChars, estimatedPromptTokens, usage, creditsDeducted: usage.promptsUsed + pending > usageLimits.freeMonthlyPromptLimit ? Math.ceil(estimatedPromptTokens / CREDITS_PER_TOKEN) : 0 }
 }
 
 function readProviderUsage(result) {
@@ -154,6 +157,20 @@ export async function runAccountedAiCall({
         },
       })
 
+      // Adjust credits based on actual token usage
+      if (promptMeta.creditsDeducted > 0 && providerUsage.actualTotalTokens) {
+        const actualCreditsNeeded = Math.ceil(providerUsage.actualTotalTokens / CREDITS_PER_TOKEN)
+        const creditDifference = actualCreditsNeeded - promptMeta.creditsDeducted
+
+        if (creditDifference !== 0) {
+          // Refund if actual < estimated, charge more if actual > estimated
+          await prisma.user.update({
+            where: { id: userId },
+            data: { creditBalance: { increment: -creditDifference } },
+          })
+        }
+      }
+
       invalidateCache(userId)
       return result
     } catch (error) {
@@ -166,6 +183,14 @@ export async function runAccountedAiCall({
           durationMs: Date.now() - startedAt,
         },
       })
+
+      // Refund credits on failure
+      if (promptMeta.creditsDeducted > 0) {
+        await prisma.user.update({
+          where: { id: userId },
+          data: { creditBalance: { increment: promptMeta.creditsDeducted } },
+        })
+      }
 
       throw error
     }

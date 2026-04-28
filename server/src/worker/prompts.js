@@ -35,39 +35,39 @@ Rules:
 - Return only the subject text.
 `
 
+const chartPrompts = [
+  'Use Frappe Charts to create a full-width bar chart using <div class="yk-chart" data-type="bar" data-labels=\'["Label1","Label2","Label3"]\' data-values=\'[10,20,30]\' data-title="Chart Title">. Use 3–5 meaningful categories related to the subject. Values must show clear relative differences (larger vs smaller). The chart should communicate one clear comparison or tradeoff at a glance. Do not modify the HTML structure.',
+
+    'Use Frappe Charts to create a line chart using <div class="yk-chart" data-type="line" data-labels=\'["T1","T2","T3"]\' data-values=\'[5,15,25]\'>. Show a simple, clear trend or progression related to the subject using realistic directional data.',
+
+    'Use Mermaid to create a flow diagram using <pre class="mermaid">. Write a valid graph TD diagram inside the block with clear labeled nodes and connections representing the subject.</pre>',
+
+    'Use Frappe Charts to create a pie chart using <div class="yk-chart" data-type="pie" data-labels=\'["Part1","Part2"]\' data-values=\'[60,40]\'>. Show how the subject is divided into parts using clear proportions and meaningful categories.',
+
+    'Use Mermaid to create a relationship diagram using <pre class="mermaid">. Write a valid graph LR diagram with clearly labeled nodes and connections representing key elements.</pre>'
+  ]
+
+const effectPrompts = [
+'Use Typed.js to create a bold hero headline using <div class="yk-typed" data-strings=\'["Phrase1","Phrase2","Phrase3"]\'>. Replace phrases with 3–5 short, meaningful statements that express key ideas about the subject. Keep phrases concise and impactful.',
+
+'Create an old computer terminal style retro screen using rough.js lo-fi pixel art vibe style. Use large print text and stacked lines for a classic terminal look.',
+
+'Create a table of data points that clearly illustrates the concept with labeled rows and columns.',
+  
+'Use a bold typographic hero with large font sizes to emphasize a key idea.'
+]
+
 // Used by the process agent to generate final HTML content.
 const PROCESS_SYSTEM = `
-You write useful high-quality content about a user topic.
+You design premium content about the user submitted subject. 
 
-Voice: Simple and efficient. 
-
-Scope:
-- Focus only on the exact prompt provided.
-- Assume it belongs to a broader topic, but do not restate or summarize the broader topic.
-- Do not drift into unrelated adjacent ideas unless they directly strengthen the response.
-- Go deeper on the assigned angle instead of going wider.
-
-Output:
-- Return HTML fragment only.
-- Allowed tags: section, div, h2, h3, p, ul, li.
-- No markdown.
-- No css, no script, no head, no body.
-
-Style:
-- Clear, sharp, intelligent, readable.
-- Start with the highest-value insight first.
-- Compact, scannable structure.
-
-Rules:
-- 2 to 6 short sections max.
-- 140 to 320 words.
-- Every paragraph must contain concrete value.
-- Prefer specifics, examples, tradeoffs, frameworks, steps, numbers, or warnings.
-- If the prompt implies business value, be commercially practical.
-- If the prompt implies technical value, be operationally concrete.
-- If the prompt implies strategy, discuss leverage and downside.
-- No filler, repetition, generic motivation, or consultant jargon.
-- No conclusion block unless necessary.
+Rules: 
+- Return HTML fragment only (no markdown, no explanations).. 
+- Use Tailwind classes for styling. 
+- Default output cadence: Title -> subtitle -> primary block.
+- Prioritize scanability and consistency. 
+- Avoid generic, consultant-speak, jargon-heavy, or unrealistic ideas. 
+- Always do a final font color contrast check to ensure readability.
 `
 
 // Builds planner payload.
@@ -79,10 +79,20 @@ export function buildPlannerPrompt({ subject, promptCount }) {
 }
 
 // Builds process payload.
+let counter = 0;
 export function buildProcessPrompt({ prompt }) {
+  const chartIndex = counter % chartPrompts.length
+  const effectIndex = Math.floor(counter / 2) % effectPrompts.length
+  const extraInstructions =
+  chartPrompts[chartIndex] +
+  (counter % 2
+    ? '\n\n' + effectPrompts[effectIndex]
+    : '')
+
+  counter++;
   return {
-    system: PROCESS_SYSTEM,
-    user: `Write a sharp useful deep-dive about: ${prompt}`
+    system: PROCESS_SYSTEM + '\n\n' + extraInstructions,
+    user: `Design a page about: ${prompt}`
   }
 }
 
@@ -90,6 +100,6 @@ export function buildProcessPrompt({ prompt }) {
 export function buildNextPromptPrompt({ currentPrompt }) {
   return {
     system: NEW_PROMPT_SYSTEM,
-    user: `Generate one adjacent subject for: ${currentPrompt}`
+    user: `Generate new related subject to explore: ${currentPrompt}`
   }
 }

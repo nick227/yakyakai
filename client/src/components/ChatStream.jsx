@@ -1,7 +1,9 @@
-import { memo, useMemo, useRef } from 'react'
+import { memo, useEffect, useMemo, useRef } from 'react'
 import { Bot, ListChecks } from 'lucide-react'
 import DOMPurify from 'dompurify'
 import { STATUS_LABELS, RUN_STATUS } from '../lib/uiConstants.js'
+import { hydrateChatContent } from '../lib/chatHydrator.js'
+import { HYDRATOR_SMOKE_MESSAGE } from '../lib/hydratorSmokeMessage.js'
 
 const LOADING_STATUSES = new Set([
   RUN_STATUS.QUEUED,
@@ -25,7 +27,7 @@ function parseMetadataSafe(raw) {
   }
 }
 
-const ChatStream = memo(function ChatStream({ outputs, chatMessages, plan, status, riverRef, onScroll, isLoadingMessages, sessionNotFound, onNewChat }) {
+const ChatStream = memo(function ChatStream({ outputs, chatMessages, plan, status, riverRef, onScroll, isLoadingMessages, sessionNotFound, onNewChat, showHydratorSmoke = false }) {
   const internalRef = useRef(null)
   const ref = riverRef || internalRef
 
@@ -36,6 +38,7 @@ const ChatStream = memo(function ChatStream({ outputs, chatMessages, plan, statu
     if (chatMessages.length <= 1) return chatMessages
     const sorted = chatMessages.slice()
     sorted.sort((a, b) => {
+      if (a.role !== b.role) return a.role === 'USER' ? -1 : 1
       const ta = a.createdAt ? new Date(a.createdAt).getTime() : Infinity
       const tb = b.createdAt ? new Date(b.createdAt).getTime() : Infinity
       if (ta !== tb) return ta - tb
@@ -66,6 +69,9 @@ const ChatStream = memo(function ChatStream({ outputs, chatMessages, plan, statu
       ) : (
         <div className="chat-stream">
           {plan && <PlanCard plan={plan} />}
+          {showHydratorSmoke && (
+            <ChatMessage key={HYDRATOR_SMOKE_MESSAGE.id} msg={HYDRATOR_SMOKE_MESSAGE} index={0} />
+          )}
           {sortedMessages.map((msg, i) => (
             <ChatMessage key={msg.id || msg.clientId || `${msg.role}-${msg.createdAt || i}`} msg={msg} index={i} />
           ))}
@@ -122,6 +128,13 @@ const ChatMessage = memo(function ChatMessage({ msg, index }) {
   const metadata = parseMetadataSafe(msg.metadata)
   const isNotice = metadata.isNotice
   const isMedia = metadata.isMedia
+  const messageBodyRef = useRef(null)
+
+  useEffect(() => {
+    if (messageBodyRef.current && !isUser && !isNotice) {
+      hydrateChatContent(messageBodyRef.current)
+    }
+  }, [msg.content, isUser, isNotice])
   
   if (isUser) {
     return (
@@ -147,14 +160,14 @@ const ChatMessage = memo(function ChatMessage({ msg, index }) {
   
   if (isMedia) {
     const safe = DOMPurify.sanitize(msg.content || '', {
-      ADD_ATTR: ['target', 'rel', 'class', 'loading', 'referrerpolicy'],
-      ADD_TAGS: ['img'],
+      ADD_ATTR: ['target', 'rel', 'class', 'loading', 'referrerpolicy', 'src', 'allowfullscreen', 'frameborder', 'allow'],
+      ADD_TAGS: ['img', 'iframe'],
     })
     return (
       <article className='chat-message media-message'>
         <div className="msg-avatar" aria-hidden="true"><Bot size={13} /></div>
         <div className="msg-content">
-          <div className="chat-message-body" dangerouslySetInnerHTML={{ __html: safe }} />
+          <div className="chat-message-body" ref={messageBodyRef} dangerouslySetInnerHTML={{ __html: safe }} />
         </div>
       </article>
     )
@@ -168,7 +181,7 @@ const ChatMessage = memo(function ChatMessage({ msg, index }) {
           <span className="pill small-pill">#{(metadata.index ?? index) + 1}</span>
           {metadata.cycle > 1 && <span className="pill small-pill">C{metadata.cycle}</span>}
         </div>
-        <div className="chat-message-body" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(msg.content || '') }} />
+        <div className="chat-message-body" ref={messageBodyRef} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(msg.content || '') }} />
       </div>
     </article>
   )

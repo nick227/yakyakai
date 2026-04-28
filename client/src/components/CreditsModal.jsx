@@ -20,7 +20,13 @@ export default function CreditsModal({ onClose }) {
     setError(null)
     try {
       const data = await api.purchaseCredits(packId)
-      setCredits(data)
+      if (data.checkoutUrl) {
+        // Redirect to Stripe checkout
+        window.location.href = data.checkoutUrl
+      } else {
+        // Fallback for stub mode (if Stripe not configured)
+        setCredits(data)
+      }
     } catch (err) {
       setError(err.message)
     } finally {
@@ -61,15 +67,15 @@ export default function CreditsModal({ onClose }) {
               </div>
               {credits.creditBalance > 0 && (
                 <div className="credits-balance-row">
-                  <span className="text-muted text-sm">Purchased credits remaining</span>
-                  <span className="text-sm text-accent">{credits.creditBalance}</span>
+                  <span className="text-muted text-sm">Purchased tokens remaining</span>
+                  <span className="text-sm text-accent">{credits.creditBalance.toLocaleString()}</span>
                 </div>
               )}
             </div>
           )}
 
           <p className="text-muted text-sm">
-            Each session prompt uses one credit. Purchased credits carry over — they never expire.
+            Tokens are deducted based on actual AI usage (1,000 tokens ≈ 1 credit). Purchased tokens carry over — they never expire.
           </p>
 
           {error && <p className="form-error">{error}</p>}
@@ -82,7 +88,7 @@ export default function CreditsModal({ onClose }) {
                 <div key={packId} className="credits-pack-card">
                   <div className="credits-pack-info">
                     <span className="credits-pack-label">{pack.label}</span>
-                    <span className="credits-pack-count">{pack.credits} credits</span>
+                    <span className="credits-pack-count">{pack.credits.toLocaleString()} tokens</span>
                   </div>
                   <button
                     type="button"
@@ -98,7 +104,7 @@ export default function CreditsModal({ onClose }) {
           </div>
 
           <p className="text-muted text-sm credits-billing-note">
-            Billing integration coming soon — purchases are applied immediately for early access.
+            Secure payment powered by Stripe. Credits are added immediately after successful payment.
           </p>
         </div>
       </div>

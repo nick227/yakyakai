@@ -7,7 +7,7 @@ import { useMessages } from './useMessages.js'
 import { useOutputs } from './useOutputs.js'
 
 export function useAppController() {
-  const { sessionId, navigateTo, clearStaleSession } = useSessionRouter()
+  const { sessionId, isProfile, navigateTo, navigateToProfile, clearStaleSession } = useSessionRouter()
   
   // Grouped UI state
   const [uiState, setUiState] = useState({
@@ -167,6 +167,7 @@ export function useAppController() {
       prompt,
       pace,
       sessionId,
+      isProfile,
       chatMessages,
       outputs,
       plan,
@@ -191,6 +192,7 @@ export function useAppController() {
       openSidebar,
       closeSidebar,
       handleScroll,
+      navigateToProfile,
     },
     derived: {
       isActive,

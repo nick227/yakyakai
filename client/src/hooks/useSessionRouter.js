@@ -6,9 +6,14 @@ function getSessionIdFromUrl() {
   return segment && CUID_RE.test(segment) ? segment : null
 }
 
+function isProfileRoute() {
+  return window.location.pathname === '/profile'
+}
+
 export function useSessionRouter() {
   // URL is canonical. Root (/) should always be a clean load.
   const [sessionId, setSessionId] = useState(() => getSessionIdFromUrl())
+  const [isProfile, setIsProfile] = useState(() => isProfileRoute())
 
   // Push/replace URL when sessionId changes programmatically
   const navigateTo = useCallback((id) => {
@@ -17,13 +22,24 @@ export function useSessionRouter() {
       window.history.pushState({}, '', target)
     }
     setSessionId(id)
+    setIsProfile(false)
+  }, [])
+
+  const navigateToProfile = useCallback(() => {
+    if (window.location.pathname !== '/profile') {
+      window.history.pushState({}, '', '/profile')
+    }
+    setIsProfile(true)
+    setSessionId(null)
   }, [])
 
   // Handle browser back/forward
   useEffect(() => {
     const onPop = () => {
       const id = getSessionIdFromUrl()
+      const profile = isProfileRoute()
       setSessionId(id)
+      setIsProfile(profile)
     }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
@@ -33,12 +49,15 @@ export function useSessionRouter() {
     const hadUrlSession = Boolean(getSessionIdFromUrl())
     window.history.replaceState({}, '', '/')
     setSessionId(null)
+    setIsProfile(false)
     return hadUrlSession
   }, [])
 
   return {
     sessionId,
+    isProfile,
     navigateTo,
+    navigateToProfile,
     clearStaleSession,
   }
 }

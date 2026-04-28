@@ -17,17 +17,13 @@ async function fetchUnsplashImage(query) {
   url.searchParams.set('content_filter', 'high')
 
   const res = await fetch(url, {
-    headers: {
-      Authorization: `Client-ID ${accessKey}`,
-      'Accept-Version': 'v1',
-    },
+    headers: { Authorization: `Client-ID ${accessKey}`, 'Accept-Version': 'v1' },
   })
   if (!res.ok) throw new Error(`Unsplash search failed: ${res.status}`)
   const data = await res.json()
   const first = data?.results?.[0]
   const imgUrl = first?.urls?.regular || first?.urls?.full || first?.urls?.raw
   if (!imgUrl) throw new Error('Unsplash returned no image url')
-
   return { url: imgUrl }
 }
 
@@ -48,20 +44,43 @@ async function fetchYouTubeVideo(query) {
   const first = data?.items?.[0]
   const videoId = first?.id?.videoId
   if (!videoId) throw new Error('YouTube returned no videoId')
-
   return { videoId }
 }
 
+async function fetchGiphy(query) {
+  const apiKey = process.env.GIPHY_API_KEY
+  if (!apiKey) throw new Error('Missing env: GIPHY_API_KEY')
+
+  const url = new URL('https://api.giphy.com/v1/gifs/search')
+  url.searchParams.set('api_key', apiKey)
+  url.searchParams.set('q', query)
+  url.searchParams.set('limit', '1')
+  url.searchParams.set('rating', 'g')
+  url.searchParams.set('lang', 'en')
+
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`Giphy search failed: ${res.status}`)
+  const data = await res.json()
+  const first = data?.data?.[0]
+  const gifUrl = first?.images?.fixed_height?.url
+  const title = first?.title || ''
+  if (!gifUrl) throw new Error('Giphy returned no gif url')
+  return { gifUrl, title }
+}
+
+function buildGiphyHtml({ gifUrl, title }) {
+  const safeUrl = String(gifUrl)
+  const safeTitle = String(title).replace(/"/g, '&quot;')
+  return `<img src="${safeUrl}" class="w-full" loading="lazy" alt="${safeTitle}">`
+}
+
 function buildImageHtml({ url }) {
-  const safeUrl = String(url)
-  return `<img src="${safeUrl}" class="w-full object-cover" loading="lazy" alt="">`
+  return `<img src="${String(url)}" class="w-full object-cover" loading="lazy" alt="">`
 }
 
 function buildVideoHtml({ videoId }) {
   const safeId = String(videoId)
-  const href = `https://youtube.com/watch?v=${safeId}`
-  const thumb = `https://i.ytimg.com/vi/${safeId}/hqdefault.jpg`
-  return `<a href="${href}" target="_blank" rel="noreferrer"><img src="${thumb}" class="w-full" loading="lazy" alt=""></a>`
+  return `<iframe src="https://www.youtube.com/embed/${safeId}" class="w-full aspect-video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`
 }
 
 async function isSessionBlocked(sessionId) {
@@ -70,80 +89,68 @@ async function isSessionBlocked(sessionId) {
   return status === 'paused' || status === 'cancelled'
 }
 
-export async function insertMediaForCycle({ sessionId, cycle, prompt, publish }) {
-  console.log('[media] insertMediaForCycle start', { sessionId, cycle })
-  if (cycle % 2 !== 0) {
-    console.log('[media] skip (odd cycle)', { sessionId, cycle })
-    return
-  }
+export async function insertMediaForCycle({ sessionId, cycle, prompt, publish, kind }) {
+  console.log('[media] insertMediaForCycle start', { sessionId, cycle, kind })
   if (await isSessionBlocked(sessionId)) {
     console.log('[media] skip (session blocked)', { sessionId, cycle })
     return
   }
 
+  const existing = await prisma.aiMediaItem.findUnique({
+    where: { sessionId_cycle_kind: { sessionId, cycle, kind } },
+  })
+  if (existing) {
+    console.log('[media] skip (already inserted)', { sessionId, cycle, kind })
+    return
+  }
+
   const query = buildQuery(prompt)
-  console.log('[media] query', { sessionId, cycle, query })
-  let image
-  let video
+  console.log('[media] query', { sessionId, cycle, kind, query })
+
+  let asset
   try {
-    ;[image, video] = await Promise.all([
-      fetchUnsplashImage(query),
-      fetchYouTubeVideo(query),
-    ])
+    if (kind === 'image') asset = await fetchUnsplashImage(query)
+    else if (kind === 'video') asset = await fetchYouTubeVideo(query)
+    else asset = await fetchGiphy(query)
   } catch (err) {
-    console.error('[media] fetch failed', { sessionId, cycle, error: err?.message || String(err) })
+    console.error('[media] fetch failed', { sessionId, cycle, kind, error: err?.message || String(err) })
     return
   }
 
   if (await isSessionBlocked(sessionId)) {
-    console.log('[media] abort (session blocked after fetch)', { sessionId, cycle })
+    console.log('[media] abort (session blocked after fetch)', { sessionId, cycle, kind })
     return
   }
 
-  const imageHtml = buildImageHtml(image)
-  const videoHtml = buildVideoHtml(video)
+  const html = kind === 'image' ? buildImageHtml(asset) : kind === 'video' ? buildVideoHtml(asset) : buildGiphyHtml(asset)
+  const provider = kind === 'image' ? 'unsplash' : kind === 'video' ? 'youtube' : 'giphy'
+  const providerAssetId = kind === 'image' ? asset.url : kind === 'video' ? asset.videoId : asset.gifUrl
 
-  const imageMsg = await prisma.chatMessage.create({
+  await prisma.aiMediaItem.create({
+    data: { sessionId, cycle, kind, provider, query, providerAssetId, assetJson: JSON.stringify(asset), htmlContent: html },
+  }).catch(() => {})
+
+  const msg = await prisma.chatMessage.create({
     data: {
       sessionId,
       role: 'ASSISTANT',
-      content: imageHtml,
-      metadata: JSON.stringify({ isMedia: true, kind: 'image', provider: 'unsplash', cycle }),
+      content: html,
+      metadata: JSON.stringify({ isMedia: true, kind, provider, cycle }),
     },
   })
-  const videoMsg = await prisma.chatMessage.create({
-    data: {
-      sessionId,
-      role: 'ASSISTANT',
-      content: videoHtml,
-      metadata: JSON.stringify({ isMedia: true, kind: 'video', provider: 'youtube', cycle }),
-    },
-  })
-  console.log('[media] inserted chat messages', { sessionId, cycle, imageMessageId: imageMsg.id, videoMessageId: videoMsg.id })
+  console.log('[media] inserted chat message', { sessionId, cycle, kind, messageId: msg.id })
 
   if (!publish) return
 
-  // Publish as normal OUTPUT events so the client appends to chat stream immediately.
   await publish(sessionId, EventTypes.OUTPUT, {
-    index: -2,
-    html: imageMsg.content,
+    index: kind === 'image' ? -2 : -1,
+    html: msg.content,
     cycle,
-    messageId: imageMsg.id,
-    createdAt: imageMsg.createdAt.toISOString(),
+    messageId: msg.id,
+    createdAt: msg.createdAt.toISOString(),
     isMedia: true,
-    kind: 'image',
-    provider: 'unsplash',
+    kind,
+    provider,
   })
-  await publish(sessionId, EventTypes.OUTPUT, {
-    index: -1,
-    html: videoMsg.content,
-    cycle,
-    messageId: videoMsg.id,
-    createdAt: videoMsg.createdAt.toISOString(),
-    isMedia: true,
-    kind: 'video',
-    provider: 'youtube',
-  })
-  console.log('[media] published output events', { sessionId, cycle })
+  console.log('[media] published output event', { sessionId, cycle, kind })
 }
-

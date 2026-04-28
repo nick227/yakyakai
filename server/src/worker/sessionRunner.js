@@ -33,13 +33,12 @@ export async function runSessionJob(job, { publish }) {
   await prisma.aiSession.update({ where: { id: sessionId }, data: { status: 'running' } })
   await publish(sessionId, EventTypes.STATUS, { status: isFirstCycle ? 'planning' : 'expanding', cycle: currentCycle })
 
+  const mediaPrompt = session.currentPrompt || session.originalPrompt
+  await insertMediaForCycle({ sessionId, cycle: currentCycle, prompt: mediaPrompt, publish, kind: 'image' })
+  await insertMediaForCycle({ sessionId, cycle: currentCycle, prompt: mediaPrompt, publish, kind: 'video' })
+  await insertMediaForCycle({ sessionId, cycle: currentCycle, prompt: mediaPrompt, publish, kind: 'giphy' })
+
   let plan
-  await insertMediaForCycle({
-    sessionId,
-    cycle: currentCycle,
-    prompt: session.currentPrompt || session.originalPrompt,
-    publish,
-  })
   try {
     if (isFirstCycle) {
       plan = await buildInitialPlan({ session, sessionId, jobId: job.id, publish })

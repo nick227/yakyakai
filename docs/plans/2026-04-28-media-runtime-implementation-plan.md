@@ -118,6 +118,39 @@ Run:
 - Modify: `client/src/components/ChatStream.jsx` (if needed; mostly should already render assistant HTML)
 - Modify: `client` sanitization policy (DOMPurify usage) to explicitly allow the chosen tags/attrs for embeds
 
+**Step 0: Add server-side deterministic HTML builder (required rule)**
+
+Create `server/src/media/buildMediaHtml.js` exporting:
+- `buildMediaHtml(aiMediaItem): string`
+
+Rules:
+- Pure function: **output must be fully deterministic from `AiMediaItem`**
+- No provider API responses used directly for HTML beyond what is already persisted in `aiMediaItem.assetJson`
+- Start with:
+  - **image**: `<img src="...">` (optional wrapper tags)
+  - **video**: `<a href="https://youtube.com/watch?v=ID" ...><img src="https://i.ytimg.com/vi/ID/hqdefault.jpg" ...></a>`
+  - No `<iframe>` initially
+
+Add test `server/src/tests/buildMediaHtml.test.js`:
+
+```js
+import { describe, it, expect } from 'vitest'
+import { buildMediaHtml } from '../media/buildMediaHtml.js'
+
+describe('buildMediaHtml', () => {
+  it('is deterministic from AiMediaItem', () => {
+    const item = {
+      kind: 'video',
+      provider: 'youtube',
+      cycle: 2,
+      providerAssetId: 'abc123',
+      assetJson: JSON.stringify({ videoId: 'abc123' }),
+    }
+    expect(buildMediaHtml(item)).toBe(buildMediaHtml(item))
+  })
+})
+```
+
 **Step 1: Decide allowed embed strategy**
 
 Start minimal and safe:

@@ -30,6 +30,7 @@ const ChatStream = memo(function ChatStream({ outputs, chatMessages, plan, statu
   const ref = riverRef || internalRef
 
   const isLoading = chatMessages.length === 0 && LOADING_STATUSES.has(status)
+  const isStreaming = LOADING_STATUSES.has(status)
 
   const sortedMessages = useMemo(() => {
     if (chatMessages.length <= 1) return chatMessages
@@ -68,6 +69,7 @@ const ChatStream = memo(function ChatStream({ outputs, chatMessages, plan, statu
           {sortedMessages.map((msg, i) => (
             <ChatMessage key={msg.id || msg.clientId || `${msg.role}-${msg.createdAt || i}`} msg={msg} index={i} />
           ))}
+          {isStreaming && <SkeletonLoader />}
         </div>
       )}
     </section>
@@ -157,7 +159,8 @@ const ChatMessage = memo(function ChatMessage({ msg, index }) {
 })
 
 const PlanCard = memo(function PlanCard({ plan }) {
-  const prompts = plan.prompts?.length > 7 ? plan.prompts.slice(0, 7) : plan.prompts
+  const labels = plan.steps ?? plan.prompts
+  const visible = labels?.length > 7 ? labels.slice(0, 7) : labels
 
   return (
     <article className="plan-card">
@@ -167,7 +170,7 @@ const PlanCard = memo(function PlanCard({ plan }) {
           <span className="pill small-pill">Plan</span>
         </div>
         <ol>
-          {prompts?.map((item, index) => (
+          {visible?.map((item, index) => (
             <li key={index}>{item}</li>
           ))}
         </ol>
@@ -175,5 +178,23 @@ const PlanCard = memo(function PlanCard({ plan }) {
     </article>
   )
 })
+
+function SkeletonLoader() {
+  return (
+    <article className="chat-message skeleton-message">
+      <div className="msg-avatar" aria-hidden="true"><Bot size={13} /></div>
+      <div className="msg-content">
+        <div className="skeleton-header">
+          <div className="skeleton-pill" />
+        </div>
+        <div className="skeleton-body">
+          <div className="skeleton-line" />
+          <div className="skeleton-line" />
+          <div className="skeleton-line skeleton-line-short" />
+        </div>
+      </div>
+    </article>
+  )
+}
 
 export default ChatStream

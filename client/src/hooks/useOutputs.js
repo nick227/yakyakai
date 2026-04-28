@@ -37,7 +37,7 @@ export function useOutputs(riverRef, onScrollToBottom) {
   const handleSSEEvent = useCallback((ev, setChatMessages) => {
     switch (ev.type) {
       case EventTypes.PLAN:
-        console.log('[sse] Plan received:', ev.payload?.prompts?.length, 'prompts')
+        console.log('[sse] Plan received:', (ev.payload?.steps ?? ev.payload?.prompts)?.length, 'steps')
         setPlan(ev.payload)
         break
       case EventTypes.OUTPUT:

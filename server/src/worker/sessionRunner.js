@@ -8,7 +8,7 @@ import { paceMs } from '../lib/pace.js'
 import { isAbortError } from '../services/sessionAbortService.js'
 import { MAX_CYCLES } from './constants.js'
 import { buildCyclePlan, buildInitialPlan, getNextPrompt } from './planning.js'
-import { processPrompts } from './processing.js'
+import { runPlanCycle } from '../ai/planRuntime.js'
 
 async function getSessionStatus(sessionId) {
   const s = await prisma.aiSession.findUnique({ where: { id: sessionId }, select: { status: true } })
@@ -38,14 +38,14 @@ export async function runSessionJob(job, { publish }) {
       plan = await buildInitialPlan({ session, sessionId, jobId: job.id, publish })
       await prisma.aiSession.update({
         where: { id: sessionId },
-        data: { title: plan.title, promptCount: plan.prompts.length, currentPrompt: session.originalPrompt },
+        data: { title: plan.title, promptCount: plan.steps.length, currentPrompt: session.originalPrompt },
       })
     } else {
       const currentPrompt = session.currentPrompt || session.originalPrompt
       const nextPrompt = await getNextPrompt({ session, sessionId, jobId: job.id, currentPrompt })
       await prisma.aiSession.update({ where: { id: sessionId }, data: { currentPrompt: nextPrompt } })
       plan = await buildCyclePlan({ session, sessionId, jobId: job.id, currentCycle, publish, currentPrompt: nextPrompt })
-      await prisma.aiSession.update({ where: { id: sessionId }, data: { promptCount: plan.prompts.length } })
+      await prisma.aiSession.update({ where: { id: sessionId }, data: { promptCount: plan.steps.length } })
     }
   } catch (error) {
     if (!isAbortError(error)) throw error
@@ -62,10 +62,10 @@ export async function runSessionJob(job, { publish }) {
     throw error
   }
 
-  await publish(sessionId, EventTypes.PLAN, { prompts: plan.prompts.map((p) => p.prompt), cycle: currentCycle })
-  await addJobEvent(job.id, 'planned', `Cycle ${currentCycle}: ${plan.prompts.length} prompts`)
+  await publish(sessionId, EventTypes.PLAN, { steps: plan.steps.map((s) => s.input), cycle: currentCycle })
+  await addJobEvent(job.id, 'planned', `Cycle ${currentCycle}: ${plan.steps.length} steps`)
 
-  const processed = await processPrompts({
+  const processed = await runPlanCycle({
     session,
     sessionId,
     job,

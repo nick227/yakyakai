@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { prisma } from '../db/prisma.js'
-import { getGovernorState } from '../services/aiGovernor.js'
+import { getPlanCapacity } from '../ai/planGovernor.js'
 import { requireAdmin } from '../middleware/permissions.js'
 import { route } from '../lib/route.js'
 import { optionalInt, requireId } from '../lib/validation.js'
@@ -22,7 +22,7 @@ adminRoutes.get('/queue', requireAdmin, route(async (_req, res) => {
   res.json({
     ok: true,
     queue: counts,
-    governor: getGovernorState(),
+    governor: getPlanCapacity(),
   })
 }))
 

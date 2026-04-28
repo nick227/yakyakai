@@ -1,4 +1,4 @@
-import { runGoverned } from '../services/aiGovernor.js'
+import { runPlanTask } from '../ai/planGovernor.js'
 import { runAccountedAiCall } from '../services/usageService.js'
 import { callPlannerStructured, callAI } from '../services/openaiClient.js'
 import { beginSessionAiCall, endSessionAiCall } from '../services/sessionAbortService.js'
@@ -40,7 +40,7 @@ async function runManagedAi({
   signal
 }) {
   try {
-    return await runGoverned(() =>
+    return await runPlanTask(() =>
       runAccountedAiCall({
         userId: session.userId,
         sessionId,

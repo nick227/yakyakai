@@ -1,4 +1,4 @@
-import { runPlanTask } from '../ai/planGovernor.js'
+import { runPlanTask } from '../ai/planLimiter.js'
 import { runAccountedAiCall } from '../services/usageService.js'
 import { callPlannerStructured, callAI } from '../services/openaiClient.js'
 import { beginSessionAiCall, endSessionAiCall } from '../services/sessionAbortService.js'

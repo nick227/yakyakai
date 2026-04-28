@@ -3,7 +3,8 @@ export {
   releasePlanSlot,
   runPlanTask,
   getPlanCapacity,
-} from '../ai/planGovernor.js'
+} from '../ai/planLimiter.js'
 
-export { runPlanTask as runGoverned } from '../ai/planGovernor.js'
-export { getPlanCapacity as getGovernorState } from '../ai/planGovernor.js'
+export { runPlanTask as runGoverned } from '../ai/planLimiter.js'
+export { getPlanCapacity as getGovernorState } from '../ai/planLimiter.js'
+

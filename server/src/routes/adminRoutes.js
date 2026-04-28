@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { prisma } from '../db/prisma.js'
-import { getPlanCapacity } from '../ai/planGovernor.js'
+import { getPlanCapacity } from '../ai/planLimiter.js'
 import { requireAdmin } from '../middleware/permissions.js'
 import { route } from '../lib/route.js'
 import { optionalInt, requireId } from '../lib/validation.js'
@@ -169,3 +169,4 @@ adminRoutes.post('/sessions/:sessionId/stop', requireAdmin, route(async (req, re
   await publish(sessionId, EventTypes.STATUS, { status: 'stopped' })
   res.json({ ok: true })
 }))
+

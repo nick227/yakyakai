@@ -1,5 +1,5 @@
 import { prisma } from '../db/prisma.js'
-import { runPlanTask } from './planGovernor.js'
+import { runPlanTask } from './planLimiter.js'
 import { runAccountedAiCall } from '../services/usageService.js'
 import { callAIRich } from '../services/openaiClient.js'
 import { beginSessionAiCall, endSessionAiCall } from '../services/sessionAbortService.js'
@@ -91,3 +91,4 @@ export async function executePlanStep({
 
   return null
 }
+

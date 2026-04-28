@@ -71,59 +71,79 @@ async function isSessionBlocked(sessionId) {
 }
 
 export async function insertMediaForCycle({ sessionId, cycle, prompt, publish }) {
-  if (cycle % 2 !== 0) return
-  if (await isSessionBlocked(sessionId)) return
+  console.log('[media] insertMediaForCycle start', { sessionId, cycle })
+  if (cycle % 2 !== 0) {
+    console.log('[media] skip (odd cycle)', { sessionId, cycle })
+    return
+  }
+  if (await isSessionBlocked(sessionId)) {
+    console.log('[media] skip (session blocked)', { sessionId, cycle })
+    return
+  }
 
   const query = buildQuery(prompt)
-  const [image, video] = await Promise.all([
-    fetchUnsplashImage(query),
-    fetchYouTubeVideo(query),
-  ])
+  console.log('[media] query', { sessionId, cycle, query })
+  let image
+  let video
+  try {
+    ;[image, video] = await Promise.all([
+      fetchUnsplashImage(query),
+      fetchYouTubeVideo(query),
+    ])
+  } catch (err) {
+    console.error('[media] fetch failed', { sessionId, cycle, error: err?.message || String(err) })
+    return
+  }
 
-  if (await isSessionBlocked(sessionId)) return
+  if (await isSessionBlocked(sessionId)) {
+    console.log('[media] abort (session blocked after fetch)', { sessionId, cycle })
+    return
+  }
 
   const imageHtml = buildImageHtml(image)
   const videoHtml = buildVideoHtml(video)
 
-  const created = await prisma.chatMessage.createMany({
-    data: [
-      {
-        sessionId,
-        role: 'ASSISTANT',
-        content: imageHtml,
-        metadata: JSON.stringify({ isMedia: true, kind: 'image', provider: 'unsplash', cycle }),
-      },
-      {
-        sessionId,
-        role: 'ASSISTANT',
-        content: videoHtml,
-        metadata: JSON.stringify({ isMedia: true, kind: 'video', provider: 'youtube', cycle }),
-      },
-    ],
+  const imageMsg = await prisma.chatMessage.create({
+    data: {
+      sessionId,
+      role: 'ASSISTANT',
+      content: imageHtml,
+      metadata: JSON.stringify({ isMedia: true, kind: 'image', provider: 'unsplash', cycle }),
+    },
   })
-  void created
+  const videoMsg = await prisma.chatMessage.create({
+    data: {
+      sessionId,
+      role: 'ASSISTANT',
+      content: videoHtml,
+      metadata: JSON.stringify({ isMedia: true, kind: 'video', provider: 'youtube', cycle }),
+    },
+  })
+  console.log('[media] inserted chat messages', { sessionId, cycle, imageMessageId: imageMsg.id, videoMessageId: videoMsg.id })
 
   if (!publish) return
 
   // Publish as normal OUTPUT events so the client appends to chat stream immediately.
-  const saved = await prisma.chatMessage.findMany({
-    where: { sessionId, role: 'ASSISTANT', metadata: { contains: '\"isMedia\":true' } },
-    orderBy: { createdAt: 'desc' },
-    take: 2,
+  await publish(sessionId, EventTypes.OUTPUT, {
+    index: -2,
+    html: imageMsg.content,
+    cycle,
+    messageId: imageMsg.id,
+    createdAt: imageMsg.createdAt.toISOString(),
+    isMedia: true,
+    kind: 'image',
+    provider: 'unsplash',
   })
-  const inChrono = saved.slice().reverse()
-  for (const msg of inChrono) {
-    const meta = JSON.parse(msg.metadata || '{}')
-    await publish(sessionId, EventTypes.OUTPUT, {
-      index: meta.kind === 'image' ? -2 : -1,
-      html: msg.content,
-      cycle,
-      messageId: msg.id,
-      createdAt: msg.createdAt.toISOString(),
-      isMedia: true,
-      kind: meta.kind,
-      provider: meta.provider,
-    })
-  }
+  await publish(sessionId, EventTypes.OUTPUT, {
+    index: -1,
+    html: videoMsg.content,
+    cycle,
+    messageId: videoMsg.id,
+    createdAt: videoMsg.createdAt.toISOString(),
+    isMedia: true,
+    kind: 'video',
+    provider: 'youtube',
+  })
+  console.log('[media] published output events', { sessionId, cycle })
 }
 

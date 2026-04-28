@@ -3,8 +3,5 @@
   "build": {
     "builder": "NIXPACKS",
     "buildCommand": "npm run build"
-  },
-  "deploy": {
-    "startCommand": "npm run db:deploy --prefix server && npm run start --prefix server"
   }
 }

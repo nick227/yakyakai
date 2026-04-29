@@ -37,10 +37,8 @@ vi.mock('../../worker/constants.js', () => ({
 }))
 
 vi.mock('../../worker/planning.js', () => ({
-  buildInitialPlan: vi.fn(),
-  buildCyclePlan: vi.fn(),
-  buildRestartPlan: vi.fn(),
-  getNextPrompt: vi.fn(),
+  runPlanningPhase: vi.fn(),
+  evolveCycle: vi.fn(),
 }))
 
 vi.mock('../../ai/planRuntime.js', () => ({
@@ -54,7 +52,7 @@ vi.mock('../../media/insertMediaForCycle.js', () => ({
 import { prisma } from '../../db/prisma.js'
 import { enqueueJob } from '../../services/jobQueueService.js'
 import { runPlanCycle } from '../../ai/planRuntime.js'
-import { buildCyclePlan, buildRestartPlan, getNextPrompt } from '../../worker/planning.js'
+import { runPlanningPhase, evolveCycle } from '../../worker/planning.js'
 import { runSessionJob } from '../../worker/sessionRunner.js'
 
 describe('session runner restart isolation', () => {
@@ -78,7 +76,7 @@ describe('session runner restart isolation', () => {
 
     prisma.aiSession.update.mockResolvedValue({})
     prisma.job.update.mockResolvedValue({})
-    buildRestartPlan.mockResolvedValue({ steps: [{ input: 'step 1' }] })
+    runPlanningPhase.mockResolvedValue({ steps: [{ input: 'step 1' }] })
     runPlanCycle.mockResolvedValue({})
 
     await runSessionJob(
@@ -93,9 +91,8 @@ describe('session runner restart isolation', () => {
       { publish: vi.fn() }
     )
 
-    expect(buildRestartPlan).toHaveBeenCalledTimes(1)
-    expect(getNextPrompt).not.toHaveBeenCalled()
-    expect(buildCyclePlan).not.toHaveBeenCalled()
+    expect(runPlanningPhase).toHaveBeenCalledTimes(1)
+    expect(evolveCycle).not.toHaveBeenCalled()
     expect(prisma.aiSession.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 'session-1' },

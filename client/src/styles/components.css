@@ -483,6 +483,11 @@
   box-shadow: 0 0 0 2px var(--color-success-soft);
 }
 
+.pill-dot.is-paused {
+  background: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent-soft);
+}
+
 .pill-sep {
   width: 1px;
   height: 0.7em;

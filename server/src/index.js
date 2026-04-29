@@ -4,6 +4,7 @@ import cors from 'cors'
 import helmet from 'helmet'
 import compression from 'compression'
 import cookieParser from 'cookie-parser'
+import rateLimit from 'express-rate-limit'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import swaggerUi from 'swagger-ui-express'
@@ -79,12 +80,21 @@ app.use(cors({ origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173', cre
 app.use(express.json({ limit: '1mb' }))
 app.use(cookieParser())
 
+// Rate limiting to prevent API abuse
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 100, // 100 requests per minute per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Too many requests, please try again later.',
+})
+
 // Swagger UI for API documentation
 const swaggerSpec = swaggerJsdoc(swaggerOptions)
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 
 // ─── V2+ API (auth-gated) ────────────────────────────────────────────────────
-app.use('/api', apiRoutes)
+app.use('/api', apiLimiter, apiRoutes)
 
 app.get('/healthz', (_req, res) => res.json({ ok: true }))
 app.get('/health', requireAuth, (_req, res) => res.json({ ok: true }))

@@ -167,8 +167,10 @@ const hydrateFrappe = async (node) => {
         ? (mod.PercentageChart || mod.Chart || mod.default)
         : (mod.AxisChart || mod.Chart || mod.default)
   if (!ChartCtor) throw new Error('Frappe constructor not found')
+  // Clear node first to avoid DOM race condition with frappe-charts
+  node.innerHTML = ''
   const container = document.createElement('div')
-  node.replaceChildren(container)
+  node.appendChild(container)
   new ChartCtor(container, { type, data, ...options })
 }
 
@@ -223,8 +225,14 @@ const hydrateMermaid = async (node) => {
   const mod = await loadMermaid()
   const mermaid = mod.default
   mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' })
-  const result = await mermaid.render(`${id}-svg`, source)
-  node.innerHTML = result.svg
+  try {
+    const result = await mermaid.render(`${id}-svg`, source)
+    node.innerHTML = result.svg
+  } catch (error) {
+    // Extract parse error message for better debugging
+    const message = error.message || error.str || 'Mermaid syntax error'
+    throw new Error(`Mermaid parse error: ${message}`)
+  }
 }
 
 const hydrateBlocks = async (nodes, handler) => {

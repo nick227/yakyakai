@@ -55,6 +55,7 @@ const RunComposer = memo(function RunComposer({
 }) {
   const nextIn = useCountdown(nextDelay)
   const isStreaming = isActive && !canResume
+  const isPaused = isActive && canResume
   const [showCredits, setShowCredits] = useState(false)
   const openCredits = useCallback(() => setShowCredits(true), [])
   const closeCredits = useCallback(() => setShowCredits(false), [])
@@ -75,15 +76,15 @@ const RunComposer = memo(function RunComposer({
           onChange={(e) => onPromptChange(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={isStreaming ? 'Run in progress…' : 'Ask YakyakAI to explore, build, compare, draft, or plan…'}
-          disabled={isStreaming}
+          disabled={isStreaming || isPaused}
         />
 
         <div className="composer-footer">
           <div className="cluster pace-cluster" aria-label={isActive ? 'Run status' : 'Pace'}>
             {isActive ? (
               <div className="run-status">
-                <span className={`pill-dot ${isActive ? 'is-live' : ''}`} />
-                <span>{isActive ? 'Running' : 'Idle'}</span>
+                <span className={`pill-dot ${isPaused ? 'is-paused' : isActive ? 'is-live' : ''}`} />
+                <span>{isPaused ? 'Paused' : 'Running'}</span>
                 {cycleCount > 0 && (
                   <>
                     <span className="pill-sep" />
@@ -141,11 +142,11 @@ const RunComposer = memo(function RunComposer({
               disabled={!canStart}
               onClick={onStart}
               type="button"
-              title={isActive ? 'Running' : 'Start run'}
-              aria-label={isActive ? 'Running' : 'Start run'}
+              title={isPaused ? 'Paused' : isActive ? 'Running' : 'Start run'}
+              aria-label={isPaused ? 'Paused' : isActive ? 'Running' : 'Start run'}
             >
               {isActive ? <Sparkles size={16} /> : <Send size={16} />}
-              <span>{isActive ? 'Running' : 'Start'}</span>
+              <span>{isPaused ? 'Paused' : isActive ? 'Running' : 'Start'}</span>
             </button>
           </div>
         </div>

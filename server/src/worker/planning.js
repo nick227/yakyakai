@@ -10,7 +10,6 @@ import {
   buildNextPromptPrompt
 } from './prompts.js'
 import { getRandomNotice } from './notices.js'
-import { EventTypes } from '../lib/eventTypes.js'
 import { publishNotice } from './events.js'
 
 /**
@@ -26,162 +25,100 @@ const TEMP = {
 /* Core Helpers                                                               */
 /* -------------------------------------------------------------------------- */
 
-/**
- * Runs any AI call through:
- * 1. concurrency governor
- * 2. usage accounting / limits
- */
-async function runManagedAi({
+async function runPlanningStep({
   session,
   sessionId,
   jobId,
   phase,
-  prompt,
-  callAi,
-  signal
+  temperature,
+  buildPrompt
 }) {
+  const promptText = buildPrompt()
+  const signal = beginSessionAiCall(sessionId)
   try {
-    return await runPlanTask(() =>
+    const rawPlan = await runPlanTask(() =>
       runAccountedAiCall({
         userId: session.userId,
         sessionId,
         jobId,
         phase,
-        prompt,
-        callAi
+        prompt: promptText.user,
+        callAi: () =>
+          callPlannerStructured({
+            system: promptText.system,
+            user: promptText.user,
+            temperature,
+            signal,
+            count: PROMPT_COUNT,
+            responseSchema: PLAN_TOOL_SCHEMA
+          })
       })
     )
+
+    return normalizePlan(rawPlan, PROMPT_COUNT)
   } finally {
     endSessionAiCall(sessionId, signal)
   }
 }
 
-/**
- * Sends a lightweight confidence notice to UI during planning.
- */
-async function sendPlanningNotice({ sessionId }) {
-  await publishNotice(sessionId, getRandomNotice())
-}
-
-/* -------------------------------------------------------------------------- */
-/* Planner Flows                                                              */
-/* -------------------------------------------------------------------------- */
-
-/**
- * Shared planner executor.
- * Used by both first-cycle planning and follow-up cycle planning.
- */
-async function executePlanner({
-  session,
-  sessionId,
-  jobId,
-  phase,
-  promptText,
-  temperature
-}) {
-  const signal = beginSessionAiCall(sessionId)
-  const rawPlan = await runManagedAi({
-    session,
-    sessionId,
-    jobId,
-    phase,
-    prompt: promptText.user,
-    callAi: () =>
-      callPlannerStructured({
-        system: promptText.system,
-        user: promptText.user,
-        temperature,
-        signal,
-        count: PROMPT_COUNT,
-        responseSchema: PLAN_TOOL_SCHEMA
-      }),
-    signal
-  })
-
-  return normalizePlan(rawPlan, PROMPT_COUNT)
-}
-
-/**
- * First plan created from original user request.
- */
-export async function buildInitialPlan({
-  session,
-  sessionId,
-  jobId,
-  publish
-}) {
-  await sendPlanningNotice({ sessionId })
-
-  const promptText = buildPlannerPrompt({
-    subject: session.originalPrompt,
-    promptCount: PROMPT_COUNT
-  })
-
-  return executePlanner({
-    session,
-    sessionId,
-    jobId,
-    phase: 'planner',
-    promptText,
-    temperature: TEMP.initialPlan
+async function initial(ctx) {
+  return runPlanningStep({
+    ...ctx,
+    phase: 'planner.initial',
+    temperature: TEMP.initialPlan,
+    buildPrompt: () =>
+      buildPlannerPrompt({
+        subject: ctx.session.originalPrompt,
+        promptCount: PROMPT_COUNT
+      })
   })
 }
 
-/**
- * Future cycles branch into adjacent directions
- * or continue from the current prompt focus.
- */
-export async function buildCyclePlan({
-  session,
-  sessionId,
-  jobId,
-  currentCycle,
-  currentPrompt,
-  publish
-}) {
-  await sendPlanningNotice({ sessionId })
+async function next(ctx) {
+  const subject = ctx.currentPrompt || ctx.session.originalPrompt
+  const cycleNumber = (ctx.cycle ?? 0) + 1
 
-  const sourcePrompt = currentPrompt || session.originalPrompt
-
-  const promptText = buildPlannerPrompt({
-    subject: sourcePrompt,
-    promptCount: PROMPT_COUNT
-  })
-
-  return executePlanner({
-    session,
-    sessionId,
-    jobId,
-    phase: `cycle_plan_${currentCycle}`,
-    promptText,
-    temperature: TEMP.cyclePlan
+  return runPlanningStep({
+    ...ctx,
+    phase: `planner.cycle.${cycleNumber}`,
+    temperature: TEMP.cyclePlan,
+    buildPrompt: () =>
+      buildPlannerPrompt({
+        subject,
+        promptCount: PROMPT_COUNT
+      })
   })
 }
 
-export async function buildRestartPlan({
-  session,
-  sessionId,
-  jobId,
-  currentCycle,
-  previousPrompt,
-  restartInstruction
-}) {
-  await sendPlanningNotice({ sessionId })
+async function restart(ctx) {
+  const cycleNumber = (ctx.cycle ?? 0) + 1
 
-  const promptText = buildRestartPlannerPrompt({
-    previousPrompt,
-    restartInstruction,
-    promptCount: PROMPT_COUNT
+  return runPlanningStep({
+    ...ctx,
+    phase: `planner.restart.${cycleNumber}`,
+    temperature: TEMP.cyclePlan,
+    buildPrompt: () =>
+      buildRestartPlannerPrompt({
+        previousPrompt: ctx.previousPrompt,
+        restartInstruction: ctx.restartInstruction,
+        promptCount: PROMPT_COUNT
+      })
   })
+}
 
-  return executePlanner({
-    session,
-    sessionId,
-    jobId,
-    phase: `cycle_plan_restart_${currentCycle}`,
-    promptText,
-    temperature: TEMP.cyclePlan
-  })
+export async function runPlanningPhase(ctx) {
+  await publishNotice(ctx.sessionId, getRandomNotice())
+
+  if (ctx.restartInstruction) {
+    return restart(ctx)
+  }
+
+  const cycle = ctx.cycle ?? 0
+  if (cycle === 0) {
+    return initial(ctx)
+  }
+
+  return next(ctx)
 }
 
 /* -------------------------------------------------------------------------- */
@@ -202,21 +139,35 @@ export async function getNextPrompt({
     currentPrompt
   })
 
-  const result = await runManagedAi({
-    session,
-    sessionId,
-    jobId,
-    phase: 'next_prompt',
-    prompt: currentPrompt,
-    callAi: () =>
-      callAI({
-        system: promptText.system,
-        user: promptText.user,
-        temperature: TEMP.nextPrompt,
-        signal
-      }),
-    signal
-  })
+  try {
+    const result = await runPlanTask(() =>
+      runAccountedAiCall({
+        userId: session.userId,
+        sessionId,
+        jobId,
+        phase: 'planner.next',
+        prompt: promptText.user,
+        callAi: () =>
+          callAI({
+            system: promptText.system,
+            user: promptText.user,
+            temperature: TEMP.nextPrompt,
+            signal
+          })
+      })
+    )
 
-  return result.trim()
+    return result.trim()
+  } finally {
+    endSessionAiCall(sessionId, signal)
+  }
+}
+
+export async function selectNextDirection(ctx) {
+  return getNextPrompt(ctx)
+}
+
+export async function evolveCycle(ctx) {
+  const nextPrompt = await selectNextDirection(ctx)
+  return { ...ctx, currentPrompt: nextPrompt, cycle: (ctx.cycle ?? 0) + 1 }
 }

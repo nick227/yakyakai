@@ -42,7 +42,7 @@ export async function claimNextJob(workerId = 'worker-1') {
     return null
   }
 
-  console.log('[jobQueue] Found candidate job', { jobId: candidate.id, sessionId: candidate.sessionId, isVisible: candidate.session?.isVisible })
+  console.log('[jobQueue] Found candidate job')
 
   // Atomic claim — only succeeds if still queued
   const claimed = await prisma.job.updateMany({
@@ -56,11 +56,11 @@ export async function claimNextJob(workerId = 'worker-1') {
   })
 
   if (claimed.count === 0) {
-    console.log('[jobQueue] Job claim failed (race condition)', { jobId: candidate.id })
+    console.warning('[jobQueue] Job claim failed (race condition)', { jobId: candidate.id })
     return null
   }
 
-  console.log('[jobQueue] Job claimed successfully', { jobId: candidate.id, workerId })
+  console.log('[jobQueue] Job claimed successfully')
   return prisma.job.findUnique({ where: { id: candidate.id } })
 }
 

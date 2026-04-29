@@ -8,11 +8,8 @@ export async function callAI({ system, user, temperature = 0.4, signal }) {
   if (!client) return mockAI({ system, user })
 
   console.log('[AI REQUEST]', {
-    model,
-    temperature,
-    system: system.slice(0, 300) + (system.length > 300 ? '...' : ''),
-    user: user.slice(0, 300) + (user.length > 300 ? '...' : ''),
-    timestamp: new Date().toISOString()
+    system: system,
+    user: user
   })
 
   const response = await client.chat.completions.create({
@@ -30,14 +27,6 @@ export async function callAI({ system, user, temperature = 0.4, signal }) {
 // --- tool call (minimal) ---
 export async function callAITool({ messages, tool, temperature = 0.2, signal }) {
   if (!client) return null
-
-  console.log('[AI TOOL REQUEST]', {
-    model,
-    temperature,
-    tool: tool.function.name,
-    messagesCount: messages.length,
-    timestamp: new Date().toISOString()
-  })
 
   const response = await client.chat.completions.create({
     model,
@@ -70,11 +59,8 @@ export async function callAIRich({ system, user, temperature = 0.4, signal }) {
   }
 
   console.log('[AI RICH REQUEST]', {
-    model,
-    temperature,
-    system: system.slice(0, 300) + (system.length > 300 ? '...' : ''),
-    user: user.slice(0, 300) + (user.length > 300 ? '...' : ''),
-    timestamp: new Date().toISOString()
+    system: system,
+    user: user,
   })
 
   const response = await client.chat.completions.create({
@@ -104,13 +90,8 @@ export async function callPlannerStructured({
   responseSchema,
 }) {
   console.log('[AI PLANNER REQUEST]', {
-    model,
-    temperature,
-    toolName,
-    count,
-    system: system.slice(0, 300) + (system.length > 300 ? '...' : ''),
-    user: user.slice(0, 300) + (user.length > 300 ? '...' : ''),
-    timestamp: new Date().toISOString()
+    system: system,
+    user: user
   })
 
   if (!client) {

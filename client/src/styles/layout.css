@@ -60,7 +60,7 @@
 
 .composer-footer {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
@@ -170,7 +170,6 @@
 
   .pace-cluster,
   .run-actions {
-    width: 100%;
     justify-content: space-between;
   }
 }

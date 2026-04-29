@@ -5,6 +5,9 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import react from 'eslint-plugin-react'
 
 export default [
+  {
+    ignores: ['dist/**', 'node_modules/**'],
+  },
   js.configs.recommended,
   {
     languageOptions: {

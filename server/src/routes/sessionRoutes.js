@@ -910,8 +910,8 @@ sessionRoutes.post('/:sessionId/fork', requireAuth, route(async (req, res) => {
     sessionId: newSession.id,
     type: 'session.start',
     payload: { 
-      prompt, 
-      restartPrompt: prompt,
+      prompt,
+      restartPrompt: `Continue this session with: ${prompt}`,
       restartSourcePrompt: parentPrompt 
     },
   })

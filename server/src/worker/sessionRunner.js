@@ -201,7 +201,7 @@ export async function runSessionJob(job, { publish }) {
   const payload = parseJobPayload(job.payloadJson)
   const restartInstruction = String(payload.restartPrompt || '').trim()
   const restartSourcePrompt = String(payload.restartSourcePrompt || '').trim()
-  const hasRestartContext = !isFirstCycle && Boolean(restartInstruction && restartSourcePrompt)
+  const hasRestartContext = Boolean(restartInstruction && restartSourcePrompt)
   if (hasRestartContext) {
     await prisma.job.update({
       where: { id: job.id },

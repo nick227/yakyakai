@@ -4,7 +4,7 @@ export const PACE = {
   DEEP: 'deep',
 }
 
-export const PACE_LABELS = { [PACE.FAST]: 'Fast', [PACE.STEADY]: 'Steady', [PACE.DEEP]: 'Deep' }
+export const PACE_LABELS = { [PACE.FAST]: 'Fast', [PACE.STEADY]: 'Steady', [PACE.DEEP]: 'Slow' }
 export const PACE_KEYS = Object.keys(PACE_LABELS)
 
 export const RUN_STATUS = {

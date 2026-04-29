@@ -137,6 +137,14 @@ export const BLUEPRINT_STYLE_PROMPTS = [
     - Noise = what distracts or misleads
   - Each item should have a short explanation
   - Focus on clarity and prioritization of attention
-  `
+  `,
+
+'Use a structured layout with clear sections, headings, and strong visual hierarchy.',
+
+'Create a table of data points that illustrate the concept or idea.', 
+
+'Use a bold beautiful hero design with huge fonts sizes for impact.', 
+
+'Write a huge bold hero headline with Typed.js animate the text phrase. This is a highly stylized extreme introduction to the subject matter. Be daring and design-focused.'
   
   ]

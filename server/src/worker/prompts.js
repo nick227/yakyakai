@@ -59,8 +59,9 @@ export function buildProcessPrompt({ prompt, position }) {
 
 // Extra prompt: generates extra instructions for process prompt
 function generateExtraPrompt(position) {
-  let chart = CHART_TYPES_PROMPTS[position % CHART_TYPES_PROMPTS.length]
-  let blueprint = BLUEPRINT_STYLE_PROMPTS[(position * 2) % BLUEPRINT_STYLE_PROMPTS.length]
+  let chart = position % 2 === 0 ? CHART_TYPES_PROMPTS[Math.floor(Math.random() * CHART_TYPES_PROMPTS.length)] : '';
+  let blueprint = BLUEPRINT_STYLE_PROMPTS[Math.floor(Math.random() * BLUEPRINT_STYLE_PROMPTS.length)]
+  blueprint += BLUEPRINT_STYLE_PROMPTS[Math.floor(Math.random() * BLUEPRINT_STYLE_PROMPTS.length)]
 
   return [chart, blueprint]
 }

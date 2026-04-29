@@ -3,5 +3,8 @@
   "build": {
     "builder": "NIXPACKS",
     "buildCommand": "npm run build"
+  },
+  "deploy": {
+    "preDeployCommand": "sh -c \"[ -d server ] && cd server; npx prisma migrate resolve --rolled-back 20260429131809_parent_session_id || true; npx prisma migrate deploy\""
   }
 }

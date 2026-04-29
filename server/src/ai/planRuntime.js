@@ -15,7 +15,6 @@ export async function runPlanCycle({
   addJobEvent,
   getSessionStatus,
 }) {
-  const priorHtml = []
   const steps = plan.steps
   const stepDelayMs = getEffectivePlanStepDelayMs(session)
 
@@ -32,7 +31,6 @@ export async function runPlanCycle({
         step,
         index,
         totalSteps: steps.length,
-        priorHtml,
         publish,
         addJobEvent,
         getSessionStatus,

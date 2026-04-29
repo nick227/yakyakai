@@ -38,7 +38,7 @@ export function useAppController() {
     }
   )
 
-  const { status, cycleCount, nextDelay, runError, setStatus, setRunError } = useSession(
+  const { status, cycleCount, nextDelay, runError, setStatus, setRunError, reconnectEvents } = useSession(
     sessionId,
     (session) => {
       setPace(session.pace)
@@ -89,6 +89,7 @@ export function useAppController() {
       setStatus(RUN_STATUS.QUEUED)
       if (shouldContinueSession) {
         await api.resume(sessionId, prompt, optimisticClientId)
+        reconnectEvents()
         console.log('[start] Session resumed:', sessionId)
       } else {
         const res = await api.start(prompt, pace, optimisticClientId)
@@ -100,7 +101,7 @@ export function useAppController() {
       setStatus(RUN_STATUS.IDLE)
       setRunError(toRunErrorCode(err))
     }
-  }, [prompt, pace, sessionId, status, setRunError, updateUiState, navigateTo, clearSessionState, setChatMessages, setStatus, toRunErrorCode])
+  }, [prompt, pace, sessionId, status, reconnectEvents, setRunError, updateUiState, navigateTo, clearSessionState, setChatMessages, setStatus, toRunErrorCode])
 
   const pauseRun = useCallback(async () => {
     if (!sessionId) return

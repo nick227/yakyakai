@@ -19,7 +19,6 @@ export async function executePlanStep({
   step,
   index,
   totalSteps,
-  priorHtml,
   publish,
   addJobEvent,
   getSessionStatus,
@@ -58,28 +57,14 @@ export async function executePlanStep({
 
   const html = stripFences(outputResult.text)
 
-  priorHtml.push(html)
-  await prisma.aiOutput.create({
-    data: {
-      sessionId,
-      cycle,
-      index,
-      title: '_',
-      html,
-    },
-  })
-  const savedMsg = await prisma.chatMessage.create({
-    data: {
-      sessionId,
-      role: 'ASSISTANT',
-      content: html,
-      metadata: JSON.stringify({ cycle, index }),
-    },
-  })
-  await prisma.aiSession.update({
-    where: { id: sessionId },
-    data: { lastHeartbeatAt: new Date() },
-  })
+  const [, savedMsg] = await Promise.all([
+    prisma.aiOutput.create({
+      data: { sessionId, cycle, index, title: '_', html },
+    }),
+    prisma.chatMessage.create({
+      data: { sessionId, role: 'ASSISTANT', content: html, metadata: JSON.stringify({ cycle, index }) },
+    }),
+  ])
   await publish(sessionId, EventTypes.OUTPUT, {
     index,
     html,
@@ -87,7 +72,7 @@ export async function executePlanStep({
     messageId: savedMsg.id,
     createdAt: savedMsg.createdAt.toISOString(),
   })
-  await addJobEvent(job.id, 'output', `Cycle ${cycle} step ${index + 1}/${totalSteps} done`)
+  addJobEvent(job.id, 'output', `Cycle ${cycle} step ${index + 1}/${totalSteps} done`).catch(() => {})
 
   blocked = await checkPlanState(sessionId, getSessionStatus)
   if (blocked) return blocked

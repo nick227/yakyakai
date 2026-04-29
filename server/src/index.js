@@ -68,7 +68,13 @@ app.use(helmet({
   },
   crossOriginEmbedderPolicy: false,
 }))
-app.use(compression())
+app.use(compression({
+  filter: (req, res) => {
+    // Never pipe SSE through gzip — the zlib buffer defeats chunk-level delivery
+    if (res.getHeader('Content-Type')?.includes('text/event-stream')) return false
+    return compression.filter(req, res)
+  },
+}))
 app.use(cors({ origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173', credentials: true }))
 app.use(express.json({ limit: '1mb' }))
 app.use(cookieParser())

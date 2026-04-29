@@ -389,28 +389,31 @@ sessionRoutes.get('/:sessionId/messages', requireAuth, route(async (req, res) =>
 
 // ── SSE ───────────────────────────────────────────────────────────────────────
 
-// Pre-serialized keepalive frame — avoids JSON.stringify + Date.now() every 10s
+// Pre-serialized keepalive frame — avoids JSON.stringify + Date.now() every poll
 const SSE_KEEPALIVE = `data: ${JSON.stringify({ type: EventTypes.HEARTBEAT })}\n\n`
+// Fast poll while session is actively generating; slow poll when idle/terminal
+const FAST_POLL_MS = 100
+const SLOW_POLL_MS = 1000
 
 sessionRoutes.get('/:sessionId/events', requireAuth, async (req, res, next) => {
   try {
     const sessionId = requireId(req.params.sessionId, 'sessionId')
     const userId = req.user.id
     const requestedAfterEventId = optionalString(req.query?.afterEventId, 'afterEventId', { max: 64, fallback: null })
-    
+
     // Check SSE connection limit
     const userConnections = activeSseConnections.get(userId) || 0
     if (userConnections >= MAX_SSE_CONNECTIONS_PER_USER) {
       logger.warn('SSE connection limit exceeded', { userId, currentConnections: userConnections })
-      return res.status(429).json({ 
-        ok: false, 
+      return res.status(429).json({
+        ok: false,
         error: 'TOO_MANY_CONNECTIONS',
-        message: `Maximum ${MAX_SSE_CONNECTIONS_PER_USER} concurrent SSE connections allowed` 
+        message: `Maximum ${MAX_SSE_CONNECTIONS_PER_USER} concurrent SSE connections allowed`,
       })
     }
-    
+
     logger.info('SSE client connecting', { sessionId })
-    
+
     const session = await prisma.aiSession.findUnique({
       where: { id: sessionId },
       select: { userId: true, status: true },
@@ -425,6 +428,9 @@ sessionRoutes.get('/:sessionId/events', requireAuth, async (req, res, next) => {
       'Cache-Control': 'no-cache, no-transform',
       Connection: 'keep-alive',
     })
+    // Flush headers immediately so the client enters the open state before any events arrive,
+    // and so compression middleware (if active) doesn't buffer this response.
+    res.flushHeaders()
 
     // Track connection
     activeSseConnections.set(userId, userConnections + 1)
@@ -432,15 +438,22 @@ sessionRoutes.get('/:sessionId/events', requireAuth, async (req, res, next) => {
     const send = (event) => {
       logger.debug('SSE sending event', { type: event.type, sessionId })
       res.write(`data: ${JSON.stringify(event)}\n\n`)
+      res.flush?.()
     }
     send({ type: EventTypes.CONNECTED, payload: { sessionId, status: session.status } })
 
     const connectionTime = new Date()
-    let afterEventId = requestedAfterEventId  // CUID cursor; null means "from connection time"
+    // CUID cursor; null means "from connection time"
+    let afterEventId = requestedAfterEventId
+    // Tracks whether the session is actively generating — drives fast vs slow poll interval
+    let sessionActive = session.status === 'running' || session.status === 'queued'
 
-    // Poll database for new events
-    const ssePollIntervalMs = Number(process.env.SSE_POLL_INTERVAL_MS || 500)
-    const pollInterval = setInterval(async () => {
+    let pollTimer = null
+    let pollStopped = false
+
+    const doPoll = async () => {
+      pollTimer = null
+      if (pollStopped) return
       try {
         const events = await prisma.aiSessionEvent.findMany({
           where: {
@@ -460,24 +473,37 @@ sessionRoutes.get('/:sessionId/events', requireAuth, async (req, res, next) => {
             const parsed = JSON.parse(event.payload)
             send({ ...parsed, eventId: event.id })
             afterEventId = event.id
+            // Keep sessionActive in sync with status events so poll rate adapts
+            if (parsed.type === EventTypes.STATUS) {
+              const s = parsed.payload?.status
+              sessionActive = s === 'running' || s === 'planning' || s === 'expanding' || s === 'cycling'
+            }
           } catch (parseErr) {
             logger.error('SSE JSON parse error', { sessionId, eventId: event.id, error: parseErr.message })
           }
         }
 
-        // Send keepalive if no new events
         if (events.length === 0) {
           res.write(SSE_KEEPALIVE)
+          res.flush?.()
         }
       } catch (err) {
         logger.error('SSE polling error', { sessionId, error: err.message })
       }
-    }, ssePollIntervalMs)
+      if (!pollStopped) {
+        pollTimer = setTimeout(doPoll, sessionActive ? FAST_POLL_MS : SLOW_POLL_MS)
+      }
+    }
+
+    pollTimer = setTimeout(doPoll, sessionActive ? FAST_POLL_MS : SLOW_POLL_MS)
 
     req.on('close', () => {
       logger.info('SSE client disconnected', { sessionId })
-      clearInterval(pollInterval)
-      // Decrement connection count
+      pollStopped = true
+      if (pollTimer) {
+        clearTimeout(pollTimer)
+        pollTimer = null
+      }
       const currentCount = activeSseConnections.get(userId) || 0
       activeSseConnections.set(userId, Math.max(0, currentCount - 1))
     })

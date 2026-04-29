@@ -24,7 +24,7 @@ export async function startLoop({ workerId, publish, shouldStop, setActive }) {
 
       const job = await claimNextJob(workerId)
       if (!job) {
-        delay = Math.min(delay * 1.5, 4000)
+        delay = Math.min(delay * 1.5, 1000)
         const jitter = delay * 0.2 * (Math.random() * 2 - 1)
         await wait(delay + jitter)
         continue

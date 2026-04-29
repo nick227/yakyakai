@@ -46,6 +46,14 @@ function App({ user, onLogout }) {
         onSidebar={actions.openSidebar}
         onProfile={handleProfileClick}
       >
+        <SessionSidebar
+          isOpen={state.uiState.showSidebar}
+          currentSessionId={state.sessionId}
+          onClose={actions.closeSidebar}
+          onNavigate={actions.navigateToSession}
+          onNewChat={actions.startNewChat}
+          onSessionDeleted={actions.startNewChat}
+        />
         <Profile 
           user={user} 
           onLogout={handleLogout}

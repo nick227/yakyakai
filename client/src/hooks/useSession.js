@@ -41,6 +41,7 @@ export function useSession(sessionId, onLoadSession, onEvent, onSessionAccessDen
   const onEventRef = useRef(onEvent)
   const onSessionAccessDeniedRef = useRef(onSessionAccessDenied)
   const lastEventIdRef = useRef(null)
+  const [eventsVersion, setEventsVersion] = useState(0)
 
   useEffect(() => {
     onLoadSessionRef.current = onLoadSession
@@ -165,7 +166,7 @@ export function useSession(sessionId, onLoadSession, onEvent, onSessionAccessDen
       console.log('[sse] Closing event stream for session', sessionId)
       closeSse()
     }
-  }, [sessionId])
+  }, [sessionId, eventsVersion])
 
   useEffect(() => {
     if (!sessionId) return
@@ -192,5 +193,10 @@ export function useSession(sessionId, onLoadSession, onEvent, onSessionAccessDen
     }
   }, [sessionId])
 
-  return { status, cycleCount, nextDelay, runError, setStatus, setRunError }
+  const reconnectEvents = () => {
+    if (!sessionId) return
+    setEventsVersion((v) => v + 1)
+  }
+
+  return { status, cycleCount, nextDelay, runError, setStatus, setRunError, reconnectEvents }
 }

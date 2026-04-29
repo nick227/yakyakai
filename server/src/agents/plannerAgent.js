@@ -3,7 +3,6 @@ export function normalizePlan(raw, count) {
     const parsed = typeof raw === 'string' ? JSON.parse(stripFences(raw)) : raw
     const rawList = Array.isArray(parsed?.prompts) ? parsed.prompts : []
     return {
-      title: 'Exploration Plan',
       steps: rawList
         .map((p) => {
           const input =
@@ -17,7 +16,6 @@ export function normalizePlan(raw, count) {
     }
   } catch {
     return {
-      title: 'Fallback Exploration Plan',
       steps: Array.from({ length: count }).map((_, i) => ({
         input: `Explore dimension ${i + 1}: ${String(raw || '').slice(0, 400)}`,
       })),

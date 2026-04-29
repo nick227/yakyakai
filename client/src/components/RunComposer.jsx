@@ -82,8 +82,8 @@ const RunComposer = memo(function RunComposer({
           <div className="cluster pace-cluster" aria-label={isActive ? 'Run status' : 'Pace'}>
             {isActive ? (
               <div className="run-status">
-                <span className="pill-dot is-live" />
-                <span>Running</span>
+                <span className={`pill-dot ${isActive ? 'is-live' : ''}`} />
+                <span>{isActive ? 'Running' : 'Idle'}</span>
                 {cycleCount > 0 && (
                   <>
                     <span className="pill-sep" />

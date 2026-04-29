@@ -11,6 +11,12 @@ import { buildCyclePlan, buildInitialPlan, getNextPrompt } from './planning.js'
 import { runPlanCycle } from '../ai/planRuntime.js'
 import { insertMediaForCycle } from '../media/insertMediaForCycle.js'
 
+function titleFromPrompt(prompt) {
+  const text = String(prompt || '').trim().replace(/\s+/g, ' ')
+  if (!text) return 'Untitled session'
+  return text.length > 60 ? text.slice(0, 60).replace(/\s+\S*$/, '…') : text
+}
+
 async function getSessionStatus(sessionId) {
   const s = await prisma.aiSession.findUnique({ where: { id: sessionId }, select: { status: true } })
   return s?.status ?? null
@@ -44,7 +50,11 @@ export async function runSessionJob(job, { publish }) {
       plan = await buildInitialPlan({ session, sessionId, jobId: job.id, publish })
       await prisma.aiSession.update({
         where: { id: sessionId },
-        data: { title: plan.title, promptCount: plan.steps.length, currentPrompt: session.originalPrompt },
+        data: {
+          ...(!session.title && { title: titleFromPrompt(session.originalPrompt) }),
+          promptCount: plan.steps.length,
+          currentPrompt: session.originalPrompt,
+        },
       })
     } else {
       const currentPrompt = session.currentPrompt || session.originalPrompt

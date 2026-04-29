@@ -1,18 +1,11 @@
 import { prisma } from '../db/prisma.js'
 import { EventTypes } from '../lib/eventTypes.js'
 
-const KIND_MODS = {
-  image: ['scenic', 'vibrant', 'aerial', 'closeup', 'dramatic', 'minimal', 'cinematic', 'natural'],
-  video: ['documentary', 'tutorial', 'explained', 'timelapse', 'overview', 'guide', 'introduction'],
-  giphy: ['funny', 'cute', 'excited', 'animated', 'reaction', 'happy', 'wow'],
-}
-
 function buildQuery(prompt, kind) {
   const words = String(prompt || '').trim().split(/\s+/).filter(Boolean)
-  const shuffled = words.sort(() => Math.random() - 0.5).slice(0, 6)
-  const mods = KIND_MODS[kind] || KIND_MODS.image
-  const mod = mods[Math.floor(Math.random() * mods.length)]
-  return [...shuffled, mod].join(' ').slice(0, 90)
+  const shuffled = words.sort(() => Math.random() - 0.5)
+  if (kind === 'video') return shuffled.join(' ').slice(0, 90)
+  return shuffled.slice(0, 6).join(' ').slice(0, 90)
 }
 
 async function fetchUnsplashImage(query) {
@@ -43,17 +36,17 @@ async function fetchYouTubeVideo(query) {
   const url = new URL('https://www.googleapis.com/youtube/v3/search')
   url.searchParams.set('part', 'snippet')
   url.searchParams.set('type', 'video')
-  url.searchParams.set('maxResults', '1')
+  url.searchParams.set('maxResults', '5')
   url.searchParams.set('q', query)
   url.searchParams.set('key', apiKey)
 
   const res = await fetch(url)
   if (!res.ok) throw new Error(`YouTube search failed: ${res.status}`)
   const data = await res.json()
-  const first = data?.items?.[0]
-  const videoId = first?.id?.videoId
-  if (!videoId) throw new Error('YouTube returned no videoId')
-  return { videoId }
+  const items = data?.items?.filter((i) => i?.id?.videoId) || []
+  if (!items.length) throw new Error('YouTube returned no videoId')
+  const pick = items[Math.floor(Math.random() * items.length)]
+  return { videoId: pick.id.videoId }
 }
 
 async function fetchGiphy(query) {

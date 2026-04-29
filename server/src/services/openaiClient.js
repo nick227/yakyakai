@@ -7,6 +7,14 @@ const client = apiKey ? new OpenAI({ apiKey }) : null
 export async function callAI({ system, user, temperature = 0.4, signal }) {
   if (!client) return mockAI({ system, user })
 
+  console.log('[AI REQUEST]', {
+    model,
+    temperature,
+    system: system.slice(0, 300) + (system.length > 300 ? '...' : ''),
+    user: user.slice(0, 300) + (user.length > 300 ? '...' : ''),
+    timestamp: new Date().toISOString()
+  })
+
   const response = await client.chat.completions.create({
     model,
     temperature,
@@ -19,11 +27,55 @@ export async function callAI({ system, user, temperature = 0.4, signal }) {
   return response.choices?.[0]?.message?.content?.trim() || ''
 }
 
+// --- tool call (minimal) ---
+export async function callAITool({ messages, tool, temperature = 0.2, signal }) {
+  if (!client) return null
+
+  console.log('[AI TOOL REQUEST]', {
+    model,
+    temperature,
+    tool: tool.function.name,
+    messagesCount: messages.length,
+    timestamp: new Date().toISOString()
+  })
+
+  const response = await client.chat.completions.create({
+    model,
+    temperature,
+    messages,
+    tools: [tool],
+    tool_choice: { type: 'function', function: { name: tool.function.name } },
+  }, signal ? { signal } : undefined)
+
+  const msg = response.choices?.[0]?.message
+
+  // if tool was called → return parsed args
+  const call = msg?.tool_calls?.[0]
+  if (call?.function?.arguments) {
+    try {
+      return JSON.parse(call.function.arguments)
+    } catch {
+      return null
+    }
+  }
+
+  // fallback (shouldn't happen if forced)
+  return msg?.content?.trim() || null
+}
+
 // Returns { text, usage, model } so callers can record actual token counts.
 export async function callAIRich({ system, user, temperature = 0.4, signal }) {
   if (!client) {
     return { text: mockAI({ system, user }), usage: null, model }
   }
+
+  console.log('[AI RICH REQUEST]', {
+    model,
+    temperature,
+    system: system.slice(0, 300) + (system.length > 300 ? '...' : ''),
+    user: user.slice(0, 300) + (user.length > 300 ? '...' : ''),
+    timestamp: new Date().toISOString()
+  })
 
   const response = await client.chat.completions.create({
     model,
@@ -51,6 +103,16 @@ export async function callPlannerStructured({
   toolDescription = 'Submit the generated plan prompts.',
   responseSchema,
 }) {
+  console.log('[AI PLANNER REQUEST]', {
+    model,
+    temperature,
+    toolName,
+    count,
+    system: system.slice(0, 300) + (system.length > 300 ? '...' : ''),
+    user: user.slice(0, 300) + (user.length > 300 ? '...' : ''),
+    timestamp: new Date().toISOString()
+  })
+
   if (!client) {
     const areas = ['Build', 'Conversion', 'Pricing', 'Retention', 'Trust', 'Risk', 'Operations']
     return {

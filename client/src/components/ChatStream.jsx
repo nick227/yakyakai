@@ -95,12 +95,71 @@ function LoadingState({ status }) {
 }
 
 function EmptyChatState() {
+  const emptyStateMessages = [
+    'What should YakyakAI keep working on?',
+    'Give it a goal. Watch it work.',
+    'Well hello, how are you doing today?',
+    "What should YakyakAI build next?",
+    "Let's keep the momentum going.",
+    "Start a thread, YakyakAI will discuss.",
+    "What should we explore and evolve?",
+    "Drop a direction, let's groove on it.",
+    "Give it something to iterate on.",
+    "What are you developing today?",
+    "The chat is ready—drop in a direction.",
+    "What idea should we keep working on?",
+    "Feed it a goal, watch the cycles unfold.",
+    "What should it plan and expand?",
+    "Give it a starting point—it won’t stop there.",
+    "AI is just a fancy database, let's go.",
+    "Start it up big dog.",
+    "What should we break down and build out?",
+    "Give me a new problem to work on.",
+    "What should we work on next?",
+    "Welcome to the new Internet.",
+    "Hi, what are we generating about today?",
+    "Send a prompt and let's get started."
+  ];
+  const emptyStateCopy = [
+    "Give it a goal and it will plan focused prompts, stream useful output, and keep expanding into adjacent ideas as it goes.",
+    "Start with a simple direction and it will build, refine, and continue generating useful work until you stop it.",
+    "Drop in a goal and it will break it down, explore angles, and keep producing structured output over time.",
+    "Give it something to work on and it will continuously plan, generate, and evolve the results step by step.",
+    "Start a thread and it will expand it into deeper ideas, structured outputs, and ongoing iterations.",
+    "Provide a goal and it will move through cycles of planning, generating, and refining without losing momentum.",
+    "Kick it off with an idea and it will explore, connect, and keep producing useful outputs in a steady flow.",
+    "Give it a direction and it will generate structured work, then shift into related ideas and continue building.",
+    "Start anywhere and it will create a chain of useful outputs, each one building on the last.",
+    "Drop a prompt and it will plan, execute, and continue expanding the work into adjacent directions.",
+    "Give it a goal and it will keep producing, refining, and extending the output as it cycles forward.",
+    "Start a concept and it will break it down, expand it, and keep generating new layers of insight.",
+    "Provide a starting point and it will continuously evolve the work through structured cycles.",
+    "Give it something interesting and it will explore it deeply while branching into connected ideas.",
+    "Start the stream and it will keep generating structured, useful outputs without stopping.",
+    "Feed it a goal and it will plan, build, and keep pushing the work forward across multiple angles.",
+    "Give it a prompt and it will expand it into a full stream of ideas, outputs, and refinements.",
+    "Start with a direction and it will continuously generate and evolve useful content from it.",
+    "Drop an idea and it will explore it, refine it, and extend it into new directions over time.",
+    "Give it something to solve and it will iterate through approaches while building structured outputs.",
+    "Start a thread and it will grow it into multiple layers of ideas and actionable outputs.",
+    "Provide a goal and it will keep cycling through planning, generating, and improving the work.",
+    "Give it a concept and it will expand it into detailed outputs and connected ideas.",
+    "Start with a prompt and it will turn it into an evolving stream of useful results.",
+    "Feed it direction and it will keep building, refining, and branching into new areas.",
+    "Give it something to develop and it will keep producing structured, meaningful outputs.",
+    "Start a flow and it will continue generating work across multiple connected angles.",
+    "Drop a goal and it will keep expanding the work into deeper and broader directions.",
+    "Give it a starting point and it will keep evolving the output without losing momentum.",
+    "Start with anything and it will turn it into a continuous stream of useful, structured work."
+  ];
+  const randomMessage = emptyStateMessages[Math.floor(Math.random() * emptyStateMessages.length)];
+  const randomCopy = emptyStateCopy[Math.floor(Math.random() * emptyStateCopy.length)];
   return (
     <div className="empty-state chat-empty">
       <div className="hero-eyebrow">Streaming GPT interface</div>
-      <h1 className="hero-title">What should YakyakAI keep working on?</h1>
+      <h1 className="hero-title">{randomMessage}</h1>
       <p className="hero-copy">
-        Give it a goal. It will plan focused prompts, stream useful output, then keep shifting into adjacent work until you stop it.
+        {randomCopy}
       </p>
     </div>
   )

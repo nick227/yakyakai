@@ -26,7 +26,10 @@ export async function executePlanStep({
 }) {
   await publish(sessionId, EventTypes.PROMPT_START, { index, cycle })
 
-  const promptText = buildProcessPrompt({ prompt: step.input })
+  const promptText = buildProcessPrompt({
+    prompt: step.input,
+    position: cycle * 100 + index
+  })
   const signal = beginSessionAiCall(sessionId)
   let outputResult
   try {

@@ -42,7 +42,7 @@ export function useAppController() {
     sessionId,
     (session) => {
       setPace(session.pace)
-      if (session.title) document.title = `${session.title} — YakyakAI`
+      if (session.title) document.title = `YakyakAI - ${session.title}`
     },
     (ev) => handleSSEEvent(ev, setChatMessages),
     clearStaleSession

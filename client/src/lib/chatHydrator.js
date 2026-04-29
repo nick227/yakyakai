@@ -1,5 +1,6 @@
 const READY = '1'
 const HYDRATING = 'data-hydrating'
+const FRAPPE_INSTANCE_KEY = '__ykFrappeChart'
 
 let apexPromise
 let frappePromise
@@ -119,6 +120,10 @@ const hydrateChartJs = async (node) => {
 }
 
 const hydrateFrappe = async (node) => {
+  const previousChart = node[FRAPPE_INSTANCE_KEY]
+  if (previousChart?.destroy) previousChart.destroy()
+  node[FRAPPE_INSTANCE_KEY] = null
+
   const inferType = () => {
     if (node.dataset.type) return node.dataset.type
     if (node.classList.contains('frappe-pie-chart')) return 'pie'
@@ -167,11 +172,20 @@ const hydrateFrappe = async (node) => {
         ? (mod.PercentageChart || mod.Chart || mod.default)
         : (mod.AxisChart || mod.Chart || mod.default)
   if (!ChartCtor) throw new Error('Frappe constructor not found')
-  // Clear node first to avoid DOM race condition with frappe-charts
-  node.innerHTML = ''
-  const container = document.createElement('div')
-  node.appendChild(container)
-  new ChartCtor(container, { type, data, ...options })
+  const chart = new ChartCtor(node, { type, data, ...options })
+
+  // Guard against React remount timing where frappe redraws after its svg was detached.
+  if (typeof chart.makeChartArea === 'function') {
+    const makeChartArea = chart.makeChartArea.bind(chart)
+    chart.makeChartArea = () => {
+      if (chart.svg && chart.svg.parentNode !== chart.container) {
+        chart.svg = null
+      }
+      return makeChartArea()
+    }
+  }
+
+  node[FRAPPE_INSTANCE_KEY] = chart
 }
 
 const hydrateTyped = async (node) => {

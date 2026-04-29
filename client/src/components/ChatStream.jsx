@@ -27,12 +27,13 @@ function parseMetadataSafe(raw) {
   }
 }
 
-const ChatStream = memo(function ChatStream({ outputs, chatMessages, plan, status, riverRef, onScroll, isLoadingMessages, sessionNotFound, onNewChat, showHydratorSmoke = false }) {
+const ChatStream = memo(function ChatStream({ outputs, chatMessages, plan, status, riverRef, onScroll, isLoadingMessages, sessionNotFound, onNewChat, showHydratorSmoke = false, accessLevel = null }) {
   const internalRef = useRef(null)
   const ref = riverRef || internalRef
 
   const isLoading = chatMessages.length === 0 && LOADING_STATUSES.has(status)
   const isStreaming = LOADING_STATUSES.has(status)
+  const isReadOnly = accessLevel === 'read-only'
 
   const sortedMessages = useMemo(() => {
     if (chatMessages.length <= 1) return chatMessages

@@ -55,8 +55,15 @@ export const api = {
     if (cursor) params.set('cursor', cursor)
     return get(`/api/sessions?${params.toString()}`)
   },
+  listPublicSessions: (take = 20, cursor = null) => {
+    const params = new URLSearchParams()
+    params.set('take', String(take))
+    if (cursor) params.set('cursor', cursor)
+    return get(`/api/public/sessions?${params.toString()}`)
+  },
   renameSession:   (id, title)          => request(`/api/sessions/${id}`, { method: 'PATCH', headers: jsonHeaders, body: JSON.stringify({ title }) }),
   deleteSession:   (id)                 => request(`/api/sessions/${id}`, { method: 'DELETE' }),
+  forkSession:     (id, prompt)         => post(`/api/sessions/${id}/fork`, { prompt }),
   getCredits:      ()          => get('/api/credits'),
   purchaseCredits: (packId)    => post('/api/credits/purchase', { packId }),
 }

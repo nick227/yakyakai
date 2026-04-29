@@ -39,6 +39,7 @@ const RunComposer = memo(function RunComposer({
   canPause,
   canResume,
   canStop,
+  canFork,
   runError,
   promptCount,
   approxTokens,
@@ -49,21 +50,28 @@ const RunComposer = memo(function RunComposer({
   onPromptChange,
   onPaceChange,
   onStart,
+  onFork,
   onPause,
   onResume,
   onStop,
+  accessLevel = null,
 }) {
   const nextIn = useCountdown(nextDelay)
   const isStreaming = isActive && !canResume
   const isPaused = isActive && canResume
+  const isReadOnly = accessLevel === 'read-only'
   const [showCredits, setShowCredits] = useState(false)
   const openCredits = useCallback(() => setShowCredits(true), [])
   const closeCredits = useCallback(() => setShowCredits(false), [])
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey && canStart) {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      onStart()
+      if (isReadOnly && canFork) {
+        onFork()
+      } else if (canStart) {
+        onStart()
+      }
     }
   }
 
@@ -122,31 +130,30 @@ const RunComposer = memo(function RunComposer({
 
           <div className="cluster run-actions" aria-label="Run controls">
             {sessionId && <ExportActions title="YakyakAI Export" sessionId={sessionId} messages={messages} />}
-            {canPause && (
+            {!isReadOnly && canPause && (
               <button className="icon-button" type="button" onClick={onPause} title="Pause" aria-label="Pause run">
                 <Pause size={15} />
               </button>
             )}
-            {canResume && (
+            {!isReadOnly && canResume && (
               <button className="icon-button button-primary" type="button" onClick={onResume} title="Resume" aria-label="Resume run">
                 <Play size={15} />
               </button>
             )}
-            {canStop && (
-              <button className="icon-button button-danger" type="button" onClick={onStop} title="Stop" aria-label="Stop run">
+            {!isReadOnly && canStop && (
+              <button className="icon-button" type="button" onClick={onStop} title="Stop" aria-label="Stop run">
                 <Square size={15} />
               </button>
             )}
             <button
-              className="send-button"
-              disabled={!canStart}
-              onClick={onStart}
+              className="icon-button button-primary"
               type="button"
-              title={isPaused ? 'Paused' : isActive ? 'Running' : 'Start run'}
-              aria-label={isPaused ? 'Paused' : isActive ? 'Running' : 'Start run'}
+              onClick={isReadOnly ? onFork : onStart}
+              disabled={isReadOnly ? !canFork : !canStart}
+              title={isStreaming ? 'Run in progress' : isReadOnly ? 'Fork to continue' : 'Start run'}
+              aria-label={isStreaming ? 'Run in progress' : isReadOnly ? 'Fork to continue' : 'Start run'}
             >
-              {isActive ? <Sparkles size={16} /> : <Send size={16} />}
-              <span>{isPaused ? 'Paused' : isActive ? 'Running' : 'Start'}</span>
+              {isReadOnly ? <Sparkles size={15} /> : <Send size={15} />}
             </button>
           </div>
         </div>

@@ -14,7 +14,7 @@
   margin-inline: auto;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: var(--space-4);
 }
 
@@ -1020,4 +1020,10 @@
 .yk-mermaid[data-ready="1"],
 .mermaid[data-ready="1"] {
   background: transparent;
+}
+
+iframe.aspect-video {
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  min-height: 460px;
 }

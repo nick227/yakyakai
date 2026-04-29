@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { prisma } from '../db/prisma.js'
-import { requireAuth } from '../middleware/auth.js'
-import { assertOwnsSession } from '../middleware/permissions.js'
+import { requireAuth, optionalAuth } from '../middleware/auth.js'
+import { assertOwnsSession, canReadSession, canWriteSession } from '../middleware/permissions.js'
 import { enqueueJob } from '../services/jobQueueService.js'
 import { route } from '../lib/route.js'
 import { requireString, requireId, optionalInt, optionalString } from '../lib/validation.js'
@@ -29,6 +29,74 @@ async function hasActiveCycleJob(sessionId) {
   })
   return Boolean(activeJob)
 }
+
+// ── Public List ─────────────────────────────────────────────────────────────────
+
+/**
+ * @swagger
+ * /api/public/sessions:
+ *   get:
+ *     summary: List public sessions
+ *     tags: [Sessions]
+ *     parameters:
+ *       - in: query
+ *         name: take
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 50
+ *           default: 20
+ *       - in: query
+ *         name: cursor
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Public session list retrieved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                 sessions:
+ *                   type: array
+ *                 nextCursor:
+ *                   type: string
+ */
+sessionRoutes.get('/sessions', route(async (req, res) => {
+  const take = optionalInt(req.query?.take, 'take', { min: 1, max: 50, fallback: 20 })
+  const cursor = optionalString(req.query?.cursor, 'cursor', { max: 64, fallback: null })
+  const sessions = await prisma.aiSession.findMany({
+    where: { isVisible: true },
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+    take: take + 1,
+    select: {
+      id: true,
+      title: true,
+      originalPrompt: true,
+      status: true,
+      cycleCount: true,
+      updatedAt: true,
+      user: { select: { name: true } },
+    },
+  })
+  const hasMore = sessions.length > take
+  const items = hasMore ? sessions.slice(0, take) : sessions
+  const normalizedItems = items.map(session => ({
+    id: session.id,
+    title: session.title || session.originalPrompt?.slice(0, 80) || 'Untitled',
+    originalPrompt: session.originalPrompt,
+    status: session.status,
+    cycleCount: session.cycleCount,
+    updatedAt: session.updatedAt,
+    user: session.user,
+  }))
+  const nextCursor = hasMore ? items[items.length - 1].id : null
+  res.json({ ok: true, sessions: normalizedItems, nextCursor })
+}))
 
 // ── List ──────────────────────────────────────────────────────────────────────
 
@@ -206,13 +274,34 @@ sessionRoutes.post('/start', requireAuth, route(async (req, res) => {
  *       403:
  *         description: Access denied
  */
-sessionRoutes.get('/:sessionId', requireAuth, route(async (req, res) => {
+sessionRoutes.get('/:sessionId', optionalAuth, route(async (req, res) => {
   const sessionId = requireId(req.params.sessionId, 'sessionId')
-  const session = await prisma.aiSession.findFirst({
-    where: { id: sessionId, userId: req.user.id },
+  const session = await prisma.aiSession.findUnique({
+    where: { id: sessionId },
+    select: {
+      id: true,
+      title: true,
+      originalPrompt: true,
+      status: true,
+      cycleCount: true,
+      pace: true,
+      isVisible: true,
+      userId: true,
+      createdAt: true,
+      updatedAt: true,
+      user: { select: { name: true } },
+    },
   })
-  if (!session) throw forbidden('SESSION_ACCESS_DENIED', 'You do not have access to this session.')
-  res.json({ ok: true, session })
+  if (!session) {
+    return res.status(404).json({ ok: false, error: 'SESSION_NOT_FOUND', message: 'Session not found.' })
+  }
+  
+  if (!canReadSession(req.user, session)) {
+    return res.status(403).json({ ok: false, error: 'SESSION_ACCESS_DENIED', message: 'You do not have access to this session.' })
+  }
+  
+  const accessLevel = canWriteSession(req.user, session) ? 'owner' : 'read-only'
+  res.json({ ok: true, session, accessLevel })
 }))
 
 // ── Rename ────────────────────────────────────────────────────────────────────
@@ -365,15 +454,22 @@ sessionRoutes.delete('/:sessionId', requireAuth, route(async (req, res) => {
  *       403:
  *         description: Access denied
  */
-sessionRoutes.get('/:sessionId/messages', requireAuth, route(async (req, res) => {
+sessionRoutes.get('/:sessionId/messages', optionalAuth, route(async (req, res) => {
   const sessionId = requireId(req.params.sessionId, 'sessionId')
   const limit = Math.min(parseInt(req.query?.limit) || 50, 100)
   const before = req.query?.before ? new Date(req.query.before) : null
 
-  const session = await prisma.aiSession.findFirst({
-    where: { id: sessionId, userId: req.user.id },
+  const session = await prisma.aiSession.findUnique({
+    where: { id: sessionId },
+    select: { id: true, isVisible: true, userId: true },
   })
-  if (!session) throw forbidden('SESSION_ACCESS_DENIED', 'You do not have access to this session.')
+  if (!session) {
+    return res.status(404).json({ ok: false, error: 'SESSION_NOT_FOUND', message: 'Session not found.' })
+  }
+  
+  if (!canReadSession(req.user, session)) {
+    return res.status(403).json({ ok: false, error: 'SESSION_ACCESS_DENIED', message: 'You do not have access to this session.' })
+  }
 
   const messages = await prisma.chatMessage.findMany({
     where: {
@@ -382,6 +478,12 @@ sessionRoutes.get('/:sessionId/messages', requireAuth, route(async (req, res) =>
     },
     orderBy: { createdAt: 'desc' },
     take: limit,
+    select: {
+      id: true,
+      role: true,
+      content: true,
+      createdAt: true,
+    },
   })
 
   res.json({ ok: true, messages: messages.reverse() })
@@ -715,6 +817,115 @@ sessionRoutes.post('/:sessionId/stop', requireAuth, route(async (req, res) => {
   await publish(sessionId, EventTypes.STATUS, { status: 'stopped' })
   res.json({ ok: true })
 }))
+
+// ── Fork ─────────────────────────────────────────────────────────────────────
+
+/**
+ * @swagger
+ * /api/sessions/{sessionId}/fork:
+ *   post:
+ *     summary: Fork a session
+ *     tags: [Sessions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: sessionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [prompt]
+ *             properties:
+ *               prompt:
+ *                 type: string
+ *                 maxLength: 24000
+ *     responses:
+ *       201:
+ *         description: Session forked successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                 sessionId:
+ *                   type: string
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Session not found
+ */
+sessionRoutes.post('/:sessionId/fork', requireAuth, route(async (req, res) => {
+  const sessionId = requireId(req.params.sessionId, 'sessionId')
+  const prompt = requireString(req.body?.prompt, 'prompt', { max: 24_000 })
+
+  const parentSession = await prisma.aiSession.findUnique({
+    where: { id: sessionId },
+    select: { id: true, isVisible: true, originalPrompt: true, currentPrompt: true, user: { select: { name: true } } },
+  })
+  if (!parentSession) {
+    return res.status(404).json({ ok: false, error: 'SESSION_NOT_FOUND', message: 'Session not found.' })
+  }
+  if (!parentSession.isVisible) {
+    return res.status(403).json({ ok: false, error: 'SESSION_NOT_VISIBLE', message: 'Cannot fork a private session.' })
+  }
+
+  const parentPrompt = parentSession.currentPrompt || parentSession.originalPrompt
+
+  const newSession = await prisma.aiSession.create({
+    data: {
+      userId: req.user.id,
+      title: prompt.slice(0, 60),
+      originalPrompt: prompt,
+      parentSessionId: sessionId,
+      status: 'queued',
+      pace: 'steady',
+      isVisible: true,
+      lastHeartbeatAt: new Date(),
+      messages: {
+        create: {
+          role: 'ASSISTANT',
+          content: buildForkHtml({ parentSessionId: sessionId, username: parentSession.user?.name || 'anonymous' }),
+          metadata: JSON.stringify({
+            isFork: true,
+            parentSessionId: sessionId,
+            parentUsername: parentSession.user?.name || 'anonymous',
+          }),
+        },
+      },
+    },
+  })
+
+  const job = await enqueueJob({
+    userId: req.user.id,
+    sessionId: newSession.id,
+    type: 'session.start',
+    payload: { 
+      prompt, 
+      restartPrompt: prompt,
+      restartSourcePrompt: parentPrompt 
+    },
+  })
+
+  logger.info('Session forked', { parentSessionId: sessionId, newSessionId: newSession.id, userId: req.user.id })
+  res.status(201).json({ ok: true, sessionId: newSession.id, jobId: job.id, status: 'queued' })
+}))
+
+function buildForkHtml({ parentSessionId, username }) {
+  const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  return `<div class="text-xs text-gray-400">
+  Forked from @${username} • <a href="/${parentSessionId}" class="underline">view original</a> • ${date}
+</div>`
+}
 
 // ── Cancel (alias for backward compat) ───────────────────────────────────────
 

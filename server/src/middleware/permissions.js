@@ -30,3 +30,11 @@ export async function assertOwnsJob(userId, jobId) {
   if (!job) throw forbidden('JOB_ACCESS_DENIED', 'You do not have access to this job.')
   return job
 }
+
+export function canReadSession(user, session) {
+  return session.isVisible || session.userId === user?.id
+}
+
+export function canWriteSession(user, session) {
+  return user && session.userId === user.id
+}

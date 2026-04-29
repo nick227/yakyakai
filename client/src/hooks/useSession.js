@@ -36,6 +36,7 @@ export function useSession(sessionId, onLoadSession, onEvent, onSessionAccessDen
   const [cycleCount, setCycleCount] = useState(0)
   const [nextDelay, setNextDelay] = useState(null)
   const [runError, setRunError] = useState(null)
+  const [accessLevel, setAccessLevel] = useState(null)
   const heartbeatRef = useRef(null)
   const onLoadSessionRef = useRef(onLoadSession)
   const onEventRef = useRef(onEvent)
@@ -63,6 +64,7 @@ export function useSession(sessionId, onLoadSession, onEvent, onSessionAccessDen
         if (res.session) {
           setStatus(normalizeSessionStatus(res.session.status))
           setCycleCount(res.session.cycleCount)
+          setAccessLevel(res.accessLevel || null)
           onLoadSessionRef.current?.(res.session)
         }
       })
@@ -198,5 +200,5 @@ export function useSession(sessionId, onLoadSession, onEvent, onSessionAccessDen
     setEventsVersion((v) => v + 1)
   }
 
-  return { status, cycleCount, nextDelay, runError, setStatus, setRunError, reconnectEvents }
+  return { status, cycleCount, nextDelay, runError, accessLevel, setStatus, setRunError, reconnectEvents }
 }

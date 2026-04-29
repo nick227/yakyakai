@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { Bot } from 'lucide-react'
+import { Bot, Globe } from 'lucide-react'
 import { RUN_STATUS } from './lib/uiConstants.js'
 import AppFrame from './components/AppFrame.jsx'
 import AuthGate from './components/AuthGate.jsx'
@@ -7,6 +7,7 @@ import ChatStream from './components/ChatStream.jsx'
 import RunComposer from './components/RunComposer.jsx'
 import AdminView from './components/AdminView.jsx'
 import SessionSidebar from './components/SessionSidebar.jsx'
+import PublicGallery from './components/PublicGallery.jsx'
 import HydratorLibraryTest from './components/HydratorLibraryTest.jsx'
 import Profile from './components/Profile.jsx'
 import { useAppController } from './hooks/useAppController.js'
@@ -34,6 +35,26 @@ function App({ user, onLogout }) {
   const handleProfileClick = useCallback(() => {
     actions.navigateToProfile()
   }, [actions])
+
+  const handleCopyLink = useCallback(() => {
+    // Optional: could add a toast notification here
+  }, [])
+
+  if (state.isPublic) {
+    return (
+      <AppFrame
+        user={user}
+        status={state.status}
+        showAdmin={state.uiState.showAdmin}
+        onAdmin={actions.toggleAdmin}
+        onLogout={handleLogout}
+        onSidebar={actions.openSidebar}
+        onProfile={handleProfileClick}
+      >
+        <PublicGallery onNavigate={actions.navigateToSession} />
+      </AppFrame>
+    )
+  }
 
   if (state.isProfile) {
     return (
@@ -71,6 +92,7 @@ function App({ user, onLogout }) {
       onLogout={handleLogout}
       onSidebar={actions.openSidebar}
       onProfile={handleProfileClick}
+      onCopyLink={state.sessionId ? handleCopyLink : null}
     >
       {showHydratorLibraryTest ? (
         <HydratorLibraryTest />
@@ -101,6 +123,7 @@ function App({ user, onLogout }) {
             sessionNotFound={state.uiState.sessionNotFound}
             onNewChat={actions.startNewChat}
             showHydratorSmoke={showHydratorSmoke}
+            accessLevel={state.accessLevel}
           />
           <RunComposer
             prompt={state.prompt}
@@ -110,6 +133,8 @@ function App({ user, onLogout }) {
             canPause={derived.canPause}
             canResume={derived.canResume}
             canStop={derived.canStop}
+            canFork={derived.canFork}
+            accessLevel={state.accessLevel}
             runError={state.runError}
             promptCount={derived.promptCount}
             approxTokens={derived.approxTokens}
@@ -120,6 +145,7 @@ function App({ user, onLogout }) {
             onPromptChange={actions.setPrompt}
             onPaceChange={actions.setPace}
             onStart={actions.start}
+            onFork={actions.fork}
             onPause={actions.pauseRun}
             onResume={actions.resumeRun}
             onStop={actions.stopRun}

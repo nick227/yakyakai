@@ -7,7 +7,7 @@ import { useMessages } from './useMessages.js'
 import { useOutputs } from './useOutputs.js'
 
 export function useAppController() {
-  const { sessionId, isProfile, navigateTo, navigateToProfile, clearStaleSession } = useSessionRouter()
+  const { sessionId, isProfile, isPublic, navigateTo, navigateToProfile, navigateToPublic, clearStaleSession } = useSessionRouter()
   
   // Grouped UI state
   const [uiState, setUiState] = useState({
@@ -38,7 +38,7 @@ export function useAppController() {
     }
   )
 
-  const { status, cycleCount, nextDelay, runError, setStatus, setRunError, reconnectEvents } = useSession(
+  const { status, cycleCount, nextDelay, runError, accessLevel, setStatus, setRunError, reconnectEvents } = useSession(
     sessionId,
     (session) => {
       setPace(session.pace)
@@ -102,6 +102,36 @@ export function useAppController() {
       setRunError(toRunErrorCode(err))
     }
   }, [prompt, pace, sessionId, status, reconnectEvents, setRunError, updateUiState, navigateTo, clearSessionState, setChatMessages, setStatus, toRunErrorCode])
+
+  const fork = useCallback(async () => {
+    if (!prompt.trim() || !sessionId) return
+    console.log('[fork] Forking session:', sessionId, 'prompt length:', prompt.length)
+    setRunError(null)
+    updateUiState({ sessionNotFound: false })
+
+    const optimisticClientId = `client-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    const optimisticMessage = {
+      id: `optimistic-${Date.now()}`,
+      clientId: optimisticClientId,
+      role: 'USER',
+      content: prompt,
+      createdAt: new Date().toISOString(),
+      metadata: JSON.stringify({ clientId: optimisticClientId }),
+    }
+    setChatMessages((prev) => [optimisticMessage])
+
+    try {
+      setStatus(RUN_STATUS.QUEUED)
+      const res = await api.forkSession(sessionId, prompt)
+      console.log('[fork] Session forked:', res.sessionId, 'status:', res.status)
+      clearSessionState()
+      navigateTo(res.sessionId)
+    } catch (err) {
+      console.error('[fork] Failed to fork session:', err.message)
+      setStatus(RUN_STATUS.IDLE)
+      setRunError(toRunErrorCode(err))
+    }
+  }, [prompt, sessionId, setRunError, updateUiState, clearSessionState, navigateTo, setChatMessages, setStatus, toRunErrorCode])
 
   const pauseRun = useCallback(async () => {
     if (!sessionId) return
@@ -169,6 +199,7 @@ export function useAppController() {
   const canPause = isActive && status !== RUN_STATUS.PAUSED
   const canResume = Boolean(sessionId) && status === RUN_STATUS.PAUSED
   const canStop = isActive || status === RUN_STATUS.PAUSED
+  const canFork = Boolean(prompt.trim()) && Boolean(sessionId)
   const promptCount = prompt.length
   const approxTokens = Math.ceil(promptCount / 4)
 
@@ -179,6 +210,8 @@ export function useAppController() {
       pace,
       sessionId,
       isProfile,
+      isPublic,
+      accessLevel,
       chatMessages,
       outputs,
       plan,
@@ -194,6 +227,7 @@ export function useAppController() {
       setPrompt,
       setPace,
       start,
+      fork,
       pauseRun,
       resumeRun,
       stopRun,
@@ -204,6 +238,7 @@ export function useAppController() {
       closeSidebar,
       handleScroll,
       navigateToProfile,
+      navigateToPublic,
     },
     derived: {
       isActive,
@@ -211,6 +246,7 @@ export function useAppController() {
       canPause,
       canResume,
       canStop,
+      canFork,
       promptCount,
       approxTokens,
     },

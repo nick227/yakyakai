@@ -10,10 +10,15 @@ function isProfileRoute() {
   return window.location.pathname === '/profile'
 }
 
+function isPublicRoute() {
+  return window.location.pathname === '/public'
+}
+
 export function useSessionRouter() {
   // URL is canonical. Root (/) should always be a clean load.
   const [sessionId, setSessionId] = useState(() => getSessionIdFromUrl())
   const [isProfile, setIsProfile] = useState(() => isProfileRoute())
+  const [isPublic, setIsPublic] = useState(() => isPublicRoute())
 
   // Push/replace URL when sessionId changes programmatically
   const navigateTo = useCallback((id) => {
@@ -23,6 +28,7 @@ export function useSessionRouter() {
     }
     setSessionId(id)
     setIsProfile(false)
+    setIsPublic(false)
   }, [])
 
   const navigateToProfile = useCallback(() => {
@@ -31,6 +37,16 @@ export function useSessionRouter() {
     }
     setIsProfile(true)
     setSessionId(null)
+    setIsPublic(false)
+  }, [])
+
+  const navigateToPublic = useCallback(() => {
+    if (window.location.pathname !== '/public') {
+      window.history.pushState({}, '', '/public')
+    }
+    setIsPublic(true)
+    setSessionId(null)
+    setIsProfile(false)
   }, [])
 
   // Handle browser back/forward
@@ -38,8 +54,10 @@ export function useSessionRouter() {
     const onPop = () => {
       const id = getSessionIdFromUrl()
       const profile = isProfileRoute()
+      const publicRoute = isPublicRoute()
       setSessionId(id)
       setIsProfile(profile)
+      setIsPublic(publicRoute)
     }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
@@ -50,14 +68,17 @@ export function useSessionRouter() {
     window.history.replaceState({}, '', '/')
     setSessionId(null)
     setIsProfile(false)
+    setIsPublic(false)
     return hadUrlSession
   }, [])
 
   return {
     sessionId,
     isProfile,
+    isPublic,
     navigateTo,
     navigateToProfile,
+    navigateToPublic,
     clearStaleSession,
   }
 }

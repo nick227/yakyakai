@@ -1,9 +1,12 @@
 [phases.setup]
 nixPkgs = ["nodejs_22"]
 
+[variables]
+NPM_CONFIG_AUDIT = "false"
+NPM_CONFIG_FUND = "false"
+
 [phases.install]
 cmds = [
-  "npm ci",
   "npm ci --prefix server --also=dev",
   "npm ci --prefix client --legacy-peer-deps"
 ]
@@ -11,7 +14,7 @@ cmds = [
 [phases.build]
 cmds = [
   "npm run build --prefix client",
-  "cd server && npm run prisma:generate"
+  "npm run prisma:generate --prefix server"
 ]
 
 [start]

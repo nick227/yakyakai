@@ -1,9 +1,48 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { visualizer } from 'rollup-plugin-visualizer'
+
+const shouldAnalyze = process.env.BUNDLE_ANALYZE === '1'
+const CHUNK_RULES = [
+  ['vendor-mermaid-core', ['mermaid', 'cytoscape', 'cose-base', 'cytoscape-cose-bilkent']],
+  ['vendor-katex', ['katex']],
+  ['vendor-diagram-layout', ['dagre', 'elkjs', 'd3']],
+  ['vendor-apex', ['apexcharts']],
+  ['vendor-frappe', ['frappe-charts', 'chart.js']],
+  ['vendor-effects', ['tsparticles', '@tsparticles', 'roughjs', 'typed.js']],
+]
+
+const manualChunks = (id) => {
+  if (!id.includes('node_modules')) return undefined
+  for (const [chunkName, packages] of CHUNK_RULES) {
+    if (packages.some((pkg) => id.includes(`/node_modules/${pkg}/`) || id.includes(`\\node_modules\\${pkg}\\`))) {
+      return chunkName
+    }
+  }
+  return undefined
+}
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    shouldAnalyze && visualizer({
+      filename: 'dist/stats.html',
+      gzipSize: true,
+      brotliSize: true,
+      template: 'treemap',
+      open: false,
+    }),
+  ].filter(Boolean),
+  build: {
+    rollupOptions: {
+      output: {
+        // Keep chunking rules minimal and predictable for cache stability.
+        manualChunks,
+      },
+    },
+  },
   server: {
     proxy: {
       '/api': {

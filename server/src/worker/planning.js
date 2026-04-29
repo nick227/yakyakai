@@ -6,6 +6,7 @@ import { normalizePlan } from '../agents/plannerAgent.js'
 import { PLAN_TOOL_SCHEMA, PROMPT_COUNT } from './constants.js'
 import {
   buildPlannerPrompt,
+  buildRestartPlannerPrompt,
   buildNextPromptPrompt
 } from './prompts.js'
 import { getRandomNotice } from './notices.js'
@@ -152,6 +153,32 @@ export async function buildCyclePlan({
     sessionId,
     jobId,
     phase: `cycle_plan_${currentCycle}`,
+    promptText,
+    temperature: TEMP.cyclePlan
+  })
+}
+
+export async function buildRestartPlan({
+  session,
+  sessionId,
+  jobId,
+  currentCycle,
+  previousPrompt,
+  restartInstruction
+}) {
+  await sendPlanningNotice({ sessionId })
+
+  const promptText = buildRestartPlannerPrompt({
+    previousPrompt,
+    restartInstruction,
+    promptCount: PROMPT_COUNT
+  })
+
+  return executePlanner({
+    session,
+    sessionId,
+    jobId,
+    phase: `cycle_plan_restart_${currentCycle}`,
     promptText,
     temperature: TEMP.cyclePlan
   })

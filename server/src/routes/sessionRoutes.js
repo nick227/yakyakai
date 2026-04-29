@@ -18,6 +18,18 @@ export const sessionRoutes = Router()
 const activeSseConnections = new Map()
 const MAX_SSE_CONNECTIONS_PER_USER = 5
 
+async function hasActiveCycleJob(sessionId) {
+  const activeJob = await prisma.job.findFirst({
+    where: {
+      sessionId,
+      type: { in: ['session.start', 'session.cycle'] },
+      status: { in: ['queued', 'running'] },
+    },
+    select: { id: true },
+  })
+  return Boolean(activeJob)
+}
+
 // ── List ──────────────────────────────────────────────────────────────────────
 
 /**
@@ -579,8 +591,21 @@ sessionRoutes.post('/:sessionId/pause', requireAuth, route(async (req, res) => {
 sessionRoutes.post('/:sessionId/resume', requireAuth, route(async (req, res) => {
   const sessionId = requireId(req.params.sessionId, 'sessionId')
   const session = await assertOwnsSession(req.user.id, sessionId)
+  if (session.status === 'running') {
+    return res.json({ ok: true, ignored: 'already_running' })
+  }
 
-  await Promise.all([
+  if (await hasActiveCycleJob(sessionId)) {
+    return res.json({ ok: true, ignored: 'job_already_active' })
+  }
+
+  const resumePrompt = optionalString(req.body?.prompt, 'prompt', { max: 24_000, fallback: null })
+  const clientId = optionalString(req.body?.clientId, 'clientId', { max: 80, fallback: null })
+  const restartPrompt = resumePrompt ? resumePrompt.trim() : ''
+  const shouldRestartWithPrompt = restartPrompt.length > 0
+  const restartSourcePrompt = session.currentPrompt || session.originalPrompt
+
+  const updates = [
     prisma.aiSession.update({
       where: { id: sessionId },
       data: { status: 'running', isVisible: true, lastHeartbeatAt: new Date(), nextEligibleAt: new Date() },
@@ -589,9 +614,26 @@ sessionRoutes.post('/:sessionId/resume', requireAuth, route(async (req, res) => 
       userId: session.userId,
       sessionId,
       type: 'session.cycle',
-      payload: {},
+      payload: shouldRestartWithPrompt
+        ? { restartPrompt, restartSourcePrompt }
+        : {},
     }),
-  ])
+  ]
+
+  if (shouldRestartWithPrompt) {
+    updates.push(
+      prisma.chatMessage.create({
+        data: {
+          sessionId,
+          role: 'USER',
+          content: restartPrompt,
+          ...(clientId ? { metadata: JSON.stringify({ clientId }) } : {}),
+        },
+      })
+    )
+  }
+
+  await Promise.all(updates)
 
   await publish(sessionId, EventTypes.STATUS, { status: 'running' })
   res.json({ ok: true })

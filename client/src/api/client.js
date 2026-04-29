@@ -30,7 +30,10 @@ export const api = {
   start:     (prompt, pace = PACE.STEADY, clientId = null) => post('/api/sessions/start', { prompt, pace, clientId }),
   heartbeat: (id, visible = true)      => post(`/api/sessions/${id}/heartbeat`, { visible }),
   pause:     (id)                      => post(`/api/sessions/${id}/pause`),
-  resume:    (id)                      => post(`/api/sessions/${id}/resume`),
+  resume:    (id, prompt = null, clientId = null) => post(
+    `/api/sessions/${id}/resume`,
+    prompt ? { prompt, clientId } : {}
+  ),
   stop:      (id)                      => post(`/api/sessions/${id}/stop`),
   eventsUrl: (id, afterEventId = null) => {
     const params = new URLSearchParams()

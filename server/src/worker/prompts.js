@@ -116,6 +116,22 @@ export function buildPlannerPrompt({ subject, promptCount }) {
   }
 }
 
+export function buildRestartPlannerPrompt({
+  previousPrompt,
+  restartInstruction,
+  promptCount
+}) {
+  return {
+    system: PLANNER_SYSTEM,
+    user: `Generate ${promptCount} distinct high-value prompts that continue this session.
+
+Previous session focus: ${previousPrompt}
+New instruction (PRIORITY): ${restartInstruction}
+
+Continue the work, strongly applying the new instruction.`
+  }
+}
+
 // Builds adjacent-topic payload.
 export function buildNextPromptPrompt({ currentPrompt }) {
   return {
@@ -123,7 +139,6 @@ export function buildNextPromptPrompt({ currentPrompt }) {
     user: `Generate a new but related subject to: ${currentPrompt}`
   }
 }
-
 
 function buildProcessInstructions(position) {
   const chart = chartPrompts[position % chartPrompts.length]

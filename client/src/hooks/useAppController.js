@@ -67,30 +67,40 @@ export function useAppController() {
     console.log('[start] Submitting prompt, pace:', pace, 'length:', prompt.length)
     setRunError(null)
     updateUiState({ sessionNotFound: false })
-    navigateTo(null)
-    clearSessionState()
-    
+
+    const shouldContinueSession = Boolean(sessionId) && TERMINAL_STATUSES.has(status)
+    if (!shouldContinueSession) {
+      navigateTo(null)
+      clearSessionState()
+    }
+
     const optimisticClientId = `client-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-    setChatMessages([{
+    const optimisticMessage = {
       id: `optimistic-${Date.now()}`,
       clientId: optimisticClientId,
       role: 'USER',
       content: prompt,
       createdAt: new Date().toISOString(),
       metadata: JSON.stringify({ clientId: optimisticClientId }),
-    }])
+    }
+    setChatMessages((prev) => (shouldContinueSession ? [...prev, optimisticMessage] : [optimisticMessage]))
 
     try {
       setStatus(RUN_STATUS.QUEUED)
-      const res = await api.start(prompt, pace, optimisticClientId)
-      console.log('[start] Session created:', res.sessionId, 'status:', res.status)
-      navigateTo(res.sessionId)
+      if (shouldContinueSession) {
+        await api.resume(sessionId, prompt, optimisticClientId)
+        console.log('[start] Session resumed:', sessionId)
+      } else {
+        const res = await api.start(prompt, pace, optimisticClientId)
+        console.log('[start] Session created:', res.sessionId, 'status:', res.status)
+        navigateTo(res.sessionId)
+      }
     } catch (err) {
       console.error('[start] Failed to create session:', err.message)
       setStatus(RUN_STATUS.IDLE)
       setRunError(toRunErrorCode(err))
     }
-  }, [prompt, pace, setRunError, updateUiState, navigateTo, clearSessionState, setChatMessages, setStatus, toRunErrorCode])
+  }, [prompt, pace, sessionId, status, setRunError, updateUiState, navigateTo, clearSessionState, setChatMessages, setStatus, toRunErrorCode])
 
   const pauseRun = useCallback(async () => {
     if (!sessionId) return

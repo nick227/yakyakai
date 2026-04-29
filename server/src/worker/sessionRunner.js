@@ -7,7 +7,7 @@ import { EventTypes } from '../lib/eventTypes.js'
 import { paceMs } from '../lib/pace.js'
 import { isAbortError } from '../services/sessionAbortService.js'
 import { MAX_CYCLES } from './constants.js'
-import { buildCyclePlan, buildInitialPlan, getNextPrompt } from './planning.js'
+import { buildCyclePlan, buildInitialPlan, buildRestartPlan, getNextPrompt } from './planning.js'
 import { runPlanCycle } from '../ai/planRuntime.js'
 import { insertMediaForCycle } from '../media/insertMediaForCycle.js'
 
@@ -20,6 +20,15 @@ function titleFromPrompt(prompt) {
 async function getSessionStatus(sessionId) {
   const s = await prisma.aiSession.findUnique({ where: { id: sessionId }, select: { status: true } })
   return s?.status ?? null
+}
+
+function parseJobPayload(payloadJson) {
+  if (!payloadJson) return {}
+  try {
+    return JSON.parse(payloadJson)
+  } catch {
+    return {}
+  }
 }
 
 export async function runSessionJob(job, { publish }) {
@@ -36,6 +45,16 @@ export async function runSessionJob(job, { publish }) {
 
   const isFirstCycle = session.cycleCount === 0
   const currentCycle = session.cycleCount + 1
+  let payload = parseJobPayload(job.payloadJson)
+  const restartInstruction = String(payload.restartPrompt || '').trim()
+  const restartSourcePrompt = String(payload.restartSourcePrompt || '').trim()
+  const hasRestartContext = !isFirstCycle && Boolean(restartInstruction && restartSourcePrompt)
+  if (hasRestartContext) {
+    await prisma.job.update({
+      where: { id: job.id },
+      data: { payloadJson: JSON.stringify({}) }
+    }).catch(() => {})
+  }
   await prisma.aiSession.update({ where: { id: sessionId }, data: { status: 'running' } })
   await publish(sessionId, EventTypes.STATUS, { status: isFirstCycle ? 'planning' : 'expanding', cycle: currentCycle })
 
@@ -55,6 +74,21 @@ export async function runSessionJob(job, { publish }) {
           promptCount: plan.steps.length,
           currentPrompt: session.originalPrompt,
         },
+      })
+    } else if (hasRestartContext) {
+      mediaPrompt = restartSourcePrompt
+      await insertMediaForCycle({ sessionId, cycle: currentCycle, prompt: mediaPrompt, publish, kind: 'video' })
+      plan = await buildRestartPlan({
+        session,
+        sessionId,
+        jobId: job.id,
+        currentCycle,
+        previousPrompt: restartSourcePrompt,
+        restartInstruction
+      })
+      await prisma.aiSession.update({
+        where: { id: sessionId },
+        data: { currentPrompt: restartInstruction, promptCount: plan.steps.length }
       })
     } else {
       const currentPrompt = session.currentPrompt || session.originalPrompt

@@ -1,7 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-import { visualizer } from 'rollup-plugin-visualizer'
 
 const shouldAnalyze = process.env.BUNDLE_ANALYZE === '1'
 const CHUNK_RULES = [
@@ -23,18 +22,22 @@ const manualChunks = (id) => {
   return undefined
 }
 
-export default defineConfig({
-  plugins: [
-    react(),
-    tailwindcss(),
-    shouldAnalyze && visualizer({
+export default defineConfig(async () => {
+  const plugins = [react(), tailwindcss()]
+
+  if (shouldAnalyze) {
+    const { visualizer } = await import('rollup-plugin-visualizer')
+    plugins.push(visualizer({
       filename: 'dist/stats.html',
       gzipSize: true,
       brotliSize: true,
       template: 'treemap',
       open: false,
-    }),
-  ].filter(Boolean),
+    }))
+  }
+
+  return {
+    plugins,
   build: {
     rollupOptions: {
       output: {
@@ -66,4 +69,5 @@ export default defineConfig({
       },
     },
   },
+  }
 })

@@ -48,8 +48,8 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:3001',
         changeOrigin: true,
-        configure: (proxy, options) => {
-          proxy.on('proxyReq', (proxyReq, req, res) => {
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq, req) => {
             // Forward cookies from the client to the backend
             if (req.headers.cookie) {
               proxyReq.setHeader('Cookie', req.headers.cookie)

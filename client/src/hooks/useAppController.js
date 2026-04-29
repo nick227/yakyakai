@@ -118,7 +118,7 @@ export function useAppController() {
       createdAt: new Date().toISOString(),
       metadata: JSON.stringify({ clientId: optimisticClientId }),
     }
-    setChatMessages((prev) => [optimisticMessage])
+    setChatMessages([optimisticMessage])
 
     try {
       setStatus(RUN_STATUS.QUEUED)

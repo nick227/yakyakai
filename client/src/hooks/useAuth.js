@@ -20,7 +20,9 @@ export function useAuth() {
   const handleLogout = async () => {
     try {
       await logout()
-    } catch {}
+    } catch (error) {
+      console.warn('[auth] logout failed', error)
+    }
     document.title = 'YakyakAI'
     setUser(null)
   }

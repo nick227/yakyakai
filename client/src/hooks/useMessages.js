@@ -93,7 +93,7 @@ export function useMessages(sessionId, riverRef, onSessionAccessDenied) {
       isLoadingMessagesRef.current = false
       setIsLoadingMessages(false)
     }
-  }, [riverRef])
+  }, [onSessionAccessDenied, riverRef])
 
   useLayoutEffect(() => {
     const river = riverRef.current
@@ -114,7 +114,9 @@ export function useMessages(sessionId, riverRef, onSessionAccessDenied) {
   useEffect(() => {
     if (!sessionId) return
     hydratedSessionRef.current = null
-    loadMessages(sessionId, null, 'initial', PAGE_SIZE)
+    queueMicrotask(() => {
+      loadMessages(sessionId, null, 'initial', PAGE_SIZE)
+    })
   }, [sessionId, loadMessages])
 
   const handleScroll = useCallback(() => {

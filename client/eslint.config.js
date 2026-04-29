@@ -10,6 +10,15 @@ export default [
   },
   js.configs.recommended,
   {
+    files: ['vite.config.js', 'scripts/**/*.mjs'],
+    languageOptions: {
+      globals: globals.node,
+      parserOptions: {
+        sourceType: 'module',
+      },
+    },
+  },
+  {
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,

@@ -541,9 +541,16 @@ sessionRoutes.get('/:sessionId/events', requireAuth, async (req, res, next) => {
     activeSseConnections.set(userId, userConnections + 1)
 
     const send = (event) => {
-      logger.debug('SSE sending event', { type: event.type, sessionId })
-      res.write(`data: ${JSON.stringify(event)}\n\n`)
-      res.flush?.()
+      if (pollStopped) return
+      try {
+        logger.debug('SSE sending event', { type: event.type, sessionId })
+        res.write(`data: ${JSON.stringify(event)}\n\n`)
+        res.flush?.()
+      } catch (writeErr) {
+        logger.warn('SSE write error, closing connection', { sessionId, error: writeErr.message })
+        pollStopped = true
+        req.connection?.destroy?.()
+      }
     }
     send({ type: EventTypes.CONNECTED, payload: { sessionId, status: session.status } })
 
@@ -589,8 +596,14 @@ sessionRoutes.get('/:sessionId/events', requireAuth, async (req, res, next) => {
         }
 
         if (events.length === 0) {
-          res.write(SSE_KEEPALIVE)
-          res.flush?.()
+          try {
+            res.write(SSE_KEEPALIVE)
+            res.flush?.()
+          } catch (keepaliveErr) {
+            logger.warn('SSE keepalive write error, closing connection', { sessionId, error: keepaliveErr.message })
+            pollStopped = true
+            req.connection?.destroy?.()
+          }
         }
       } catch (err) {
         logger.error('SSE polling error', { sessionId, error: err.message })
@@ -604,6 +617,17 @@ sessionRoutes.get('/:sessionId/events', requireAuth, async (req, res, next) => {
 
     req.on('close', () => {
       logger.info('SSE client disconnected', { sessionId })
+      pollStopped = true
+      if (pollTimer) {
+        clearTimeout(pollTimer)
+        pollTimer = null
+      }
+      const currentCount = activeSseConnections.get(userId) || 0
+      activeSseConnections.set(userId, Math.max(0, currentCount - 1))
+    })
+
+    req.on('error', (err) => {
+      logger.warn('SSE request error', { sessionId, error: err.message })
       pollStopped = true
       if (pollTimer) {
         clearTimeout(pollTimer)

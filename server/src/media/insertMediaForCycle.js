@@ -82,7 +82,7 @@ function buildImageHtml({ url }) {
 
 function buildVideoHtml({ videoId }) {
   const safeId = String(videoId)
-  return `<iframe src="https://www.youtube.com/embed/${safeId}" class="w-full aspect-video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`
+  return `<iframe src="https://www.youtube.com/embed/${safeId}" class="w-full aspect-video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`
 }
 
 async function isSessionBlocked(sessionId) {

@@ -76,23 +76,61 @@ export function useSession(sessionId, onLoadSession, onEvent, onSessionAccessDen
     let sse = null
     let stopped = false
     let reconnectAttempts = 0
+    const MAX_RECONNECT_ATTEMPTS = 5
+    const BASE_RETRY_DELAY_MS = 500
+    const HEALTH_CHECK_INTERVAL_MS = 30_000
+    let lastEventTime = Date.now()
+    let healthCheckTimer = null
 
     const closeSse = () => {
       if (!sse) return
       sse.close()
       sse = null
+      if (healthCheckTimer) {
+        clearTimeout(healthCheckTimer)
+        healthCheckTimer = null
+      }
+    }
+
+    const startHealthCheck = () => {
+      if (healthCheckTimer) clearTimeout(healthCheckTimer)
+      healthCheckTimer = setTimeout(() => {
+        if (stopped) return
+        const timeSinceLastEvent = Date.now() - lastEventTime
+        if (timeSinceLastEvent > HEALTH_CHECK_INTERVAL_MS) {
+          console.warn(`[sse] Health check failed: no events for ${timeSinceLastEvent}ms, forcing reconnect`)
+          closeSse()
+          if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+            reconnectAttempts += 1
+            const delay = BASE_RETRY_DELAY_MS * Math.pow(2, reconnectAttempts - 1)
+            setRunError(`Connection stale. Reconnecting... (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`)
+            setTimeout(() => {
+              if (!stopped) openSse()
+            }, delay)
+          } else {
+            setRunError('Connection lost. Please refresh.')
+          }
+        } else {
+          startHealthCheck()
+        }
+      }, HEALTH_CHECK_INTERVAL_MS)
     }
 
     const openSse = () => {
       sse = new EventSource(api.eventsUrl(sessionId, lastEventIdRef.current))
+      lastEventTime = Date.now()
 
       sse.onmessage = (msg) => {
+        lastEventTime = Date.now()
         const ev = parseEventMessage(msg)
         if (!ev) {
           console.log('[sse] Failed to parse message:', msg.data)
           return
         }
-        if (ev.type !== EventTypes.HEARTBEAT) setRunError(null)
+        if (ev.type !== EventTypes.HEARTBEAT) {
+          setRunError(null)
+          reconnectAttempts = 0
+        }
         if (ev.eventId && ev.eventId === lastEventIdRef.current) return
         if (ev.eventId) lastEventIdRef.current = ev.eventId
 
@@ -105,6 +143,7 @@ export function useSession(sessionId, onLoadSession, onEvent, onSessionAccessDen
           case EventTypes.CONNECTED: {
             const { status: connStatus } = ev.payload || {}
             console.log('[sse] Connected, server status:', connStatus)
+            startHealthCheck()
             if (connStatus) {
               const norm = normalizeSessionStatus(connStatus)
               setStatus(norm)
@@ -148,16 +187,17 @@ export function useSession(sessionId, onLoadSession, onEvent, onSessionAccessDen
       sse.onerror = (e) => {
         if (stopped) return
         closeSse()
-        if (reconnectAttempts >= 1) {
+        if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
           setRunError('Connection lost. Please refresh.')
           return
         }
         reconnectAttempts += 1
-        console.warn('[sse] Connection error, attempting one reconnect', e)
-        setRunError('Connection interrupted. Reconnecting...')
+        const delay = BASE_RETRY_DELAY_MS * Math.pow(2, reconnectAttempts - 1)
+        console.warn(`[sse] Connection error, reconnecting (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}) in ${delay}ms`, e)
+        setRunError(`Connection interrupted. Reconnecting... (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`)
         setTimeout(() => {
           if (!stopped) openSse()
-        }, 350)
+        }, delay)
       }
     }
 

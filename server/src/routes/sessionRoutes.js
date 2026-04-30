@@ -540,6 +540,15 @@ sessionRoutes.get('/:sessionId/events', requireAuth, async (req, res, next) => {
     // Track connection
     activeSseConnections.set(userId, userConnections + 1)
 
+    const connectionTime = new Date()
+    // CUID cursor; null means "from connection time"
+    let afterEventId = requestedAfterEventId
+    // Tracks whether the session is actively generating — drives fast vs slow poll interval
+    let sessionActive = session.status === 'running' || session.status === 'queued'
+
+    let pollTimer = null
+    let pollStopped = false
+
     const send = (event) => {
       if (pollStopped) return
       try {
@@ -553,15 +562,6 @@ sessionRoutes.get('/:sessionId/events', requireAuth, async (req, res, next) => {
       }
     }
     send({ type: EventTypes.CONNECTED, payload: { sessionId, status: session.status } })
-
-    const connectionTime = new Date()
-    // CUID cursor; null means "from connection time"
-    let afterEventId = requestedAfterEventId
-    // Tracks whether the session is actively generating — drives fast vs slow poll interval
-    let sessionActive = session.status === 'running' || session.status === 'queued'
-
-    let pollTimer = null
-    let pollStopped = false
 
     const doPoll = async () => {
       pollTimer = null

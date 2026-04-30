@@ -171,7 +171,7 @@ export function useSession(sessionId, onLoadSession, onEvent, onSessionAccessDen
               setNextDelay(null)
             }
             if (normalizedStatus === RUN_STATUS.FAILED) {
-              if (code === 'PROMPT_LIMIT_REACHED' || code === 'TOKEN_LIMIT_REACHED') {
+              if (code === 'PROMPT_LIMIT_REACHED' || code === 'TOKEN_LIMIT_REACHED' || code === 'CREDIT_LIMIT_REACHED') {
                 setRunError('CREDITS_EXHAUSTED')
               } else {
                 setRunError('This run was interrupted. Resume or start again.')

@@ -7,10 +7,10 @@ const client = apiKey ? new OpenAI({ apiKey }) : null
 export async function callAI({ system, user, temperature = 0.4, signal }) {
   if (!client) return mockAI({ system, user })
 
-  console.log('[AI REQUEST]', {
+  /*console.log('[AI REQUEST]', {
     system: system,
     user: user
-  })
+  })*/
 
   const response = await client.chat.completions.create({
     model,
@@ -58,10 +58,10 @@ export async function callAIRich({ system, user, temperature = 0.4, signal }) {
     return { text: mockAI({ system, user }), usage: null, model }
   }
 
-  console.log('[AI RICH REQUEST]', {
+  /*console.log('[AI RICH REQUEST]', {
     system: system,
     user: user,
-  })
+  })*/
 
   const response = await client.chat.completions.create({
     model,
@@ -89,10 +89,10 @@ export async function callPlannerStructured({
   toolDescription = 'Submit the generated plan prompts.',
   responseSchema,
 }) {
-  console.log('[AI PLANNER REQUEST]', {
+  /*console.log('[AI PLANNER REQUEST]', {
     system: system,
     user: user
-  })
+  })*/
 
   if (!client) {
     const areas = ['Build', 'Conversion', 'Pricing', 'Retention', 'Trust', 'Risk', 'Operations']

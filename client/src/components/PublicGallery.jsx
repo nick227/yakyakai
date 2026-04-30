@@ -40,10 +40,12 @@ export default function PublicGallery({ onNavigate }) {
     else setLoadingMore(true)
     try {
       const res = await api.listPublicSessions(20, reset ? null : nextCursor)
+      console.log('[PublicGallery] API response:', res)
       const items = res.sessions || []
       setSessions((prev) => (reset ? items : [...prev, ...items]))
       setNextCursor(res.nextCursor || null)
-    } catch {
+    } catch (err) {
+      console.error('[PublicGallery] Failed to load sessions:', err)
       // silent — gallery is non-critical
     } finally {
       if (reset) setLoading(false)

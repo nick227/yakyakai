@@ -68,6 +68,7 @@ async function hasActiveCycleJob(sessionId) {
 sessionRoutes.get('/sessions', route(async (req, res) => {
   const take = optionalInt(req.query?.take, 'take', { min: 1, max: 50, fallback: 20 })
   const cursor = optionalString(req.query?.cursor, 'cursor', { max: 64, fallback: null })
+  logger.info('[PublicGallery] Querying public sessions', { take, cursor })
   const sessions = await prisma.aiSession.findMany({
     where: { isVisible: true },
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
@@ -83,6 +84,7 @@ sessionRoutes.get('/sessions', route(async (req, res) => {
       user: { select: { name: true } },
     },
   })
+  logger.info('[PublicGallery] Found sessions', { count: sessions.length })
   const hasMore = sessions.length > take
   const items = hasMore ? sessions.slice(0, take) : sessions
   const normalizedItems = items.map(session => ({
@@ -140,6 +142,7 @@ sessionRoutes.get('/sessions', route(async (req, res) => {
 sessionRoutes.get('/', requireAuth, route(async (req, res) => {
   const take = optionalInt(req.query?.take, 'take', { min: 1, max: 50, fallback: 20 })
   const cursor = optionalString(req.query?.cursor, 'cursor', { max: 64, fallback: null })
+  logger.info('[SessionList] Querying user sessions', { userId: req.user.id, take, cursor })
   const sessions = await prisma.aiSession.findMany({
     where: { userId: req.user.id },
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
@@ -147,6 +150,7 @@ sessionRoutes.get('/', requireAuth, route(async (req, res) => {
     take: take + 1,
     select: { id: true, title: true, status: true, createdAt: true, cycleCount: true, promptCount: true },
   })
+  logger.info('[SessionList] Found sessions', { count: sessions.length })
   const hasMore = sessions.length > take
   const items = hasMore ? sessions.slice(0, take) : sessions
   const nextCursor = hasMore ? items[items.length - 1].id : null
@@ -227,8 +231,7 @@ sessionRoutes.post('/start', requireAuth, route(async (req, res) => {
       },
     },
   })
-
-  logger.info('Session created', { sessionId: session.id, status: session.status })
+  logger.info('Session created', { sessionId: session.id, isVisible: session.isVisible, status: session.status })
 
   const job = await enqueueJob({
     userId: req.user.id,
@@ -623,11 +626,10 @@ sessionRoutes.get('/:sessionId/events', requireAuth, async (req, res, next) => {
 
 sessionRoutes.post('/:sessionId/heartbeat', requireAuth, route(async (req, res) => {
   const sessionId = requireId(req.params.sessionId, 'sessionId')
-  const visible = req.body?.visible !== false
 
   const result = await prisma.aiSession.updateMany({
     where: { id: sessionId, userId: req.user.id },
-    data: { lastHeartbeatAt: new Date(), isVisible: visible },
+    data: { lastHeartbeatAt: new Date() },
   })
 
   if (result.count === 0) return res.sendStatus(403)
@@ -676,7 +678,7 @@ sessionRoutes.post('/:sessionId/pause', requireAuth, route(async (req, res) => {
     }),
     prisma.aiSession.update({
       where: { id: sessionId },
-      data: { status: 'paused', isVisible: false },
+      data: { status: 'paused' },
     }),
   ])
   abortSessionAiCall(sessionId)
@@ -809,7 +811,7 @@ sessionRoutes.post('/:sessionId/stop', requireAuth, route(async (req, res) => {
     }),
     prisma.aiSession.update({
       where: { id: sessionId },
-      data: { status: 'cancelled' },
+      data: { status: 'stopped' },
     }),
   ])
   abortSessionAiCall(sessionId)
@@ -940,7 +942,7 @@ sessionRoutes.post('/:sessionId/cancel', requireAuth, route(async (req, res) => 
     }),
     prisma.aiSession.update({
       where: { id: sessionId },
-      data: { status: 'cancelled' },
+      data: { status: 'stopped' },
     }),
   ])
   abortSessionAiCall(sessionId)

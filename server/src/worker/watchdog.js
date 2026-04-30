@@ -30,7 +30,7 @@ export async function recoverStaleRunningSessions() {
     }),
     prisma.aiSession.updateMany({
       where: { id: { in: staleIds } },
-      data: { status: 'failed', isVisible: false },
+      data: { status: 'failed' },
     }),
   ])
   logger.warn('Recovered stale running sessions at startup', { count: staleIds.length })
@@ -73,17 +73,6 @@ export async function runWatchdog() {
   if (watchdogRunning) return
   watchdogRunning = true
   try {
-    const staleTimeoutMs = Number(process.env.WATCHDOG_STALE_TIMEOUT_MS || 120_000)
-    const staleAt = new Date(Date.now() - staleTimeoutMs)
-    const { count } = await prisma.aiSession.updateMany({
-      where: {
-        isVisible: true,
-        lastHeartbeatAt: { not: null, lt: staleAt },
-        status: { notIn: ['cancelled', 'completed', 'failed'] },
-      },
-      data: { isVisible: false },
-    })
-    if (count > 0) logger.info('Watchdog expired stale sessions', { count })
     await resetStuckJobLocks()
     await failOrphanedSessions()
   } finally {

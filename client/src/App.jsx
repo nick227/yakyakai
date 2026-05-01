@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
 import { Bot, Globe } from 'lucide-react'
 import { RUN_STATUS } from './lib/uiConstants.js'
 import AppFrame from './components/AppFrame.jsx'
@@ -12,6 +12,7 @@ import HydratorLibraryTest from './components/HydratorLibraryTest.jsx'
 import Profile from './components/Profile.jsx'
 import { useAppController } from './hooks/useAppController.js'
 import { useAuth } from './hooks/useAuth.js'
+import { api } from './api/client.js'
 
 const isHydratorSmokeEnabled = () => {
   if (typeof window === 'undefined') return false
@@ -23,10 +24,40 @@ const isHydratorLibraryTestEnabled = () => {
   return new URLSearchParams(window.location.search).get('hydratorLibTest') === '1'
 }
 
+const getPurchaseStatus = () => {
+  if (typeof window === 'undefined') return null
+  const params = new URLSearchParams(window.location.search)
+  const purchase = params.get('purchase')
+  if (purchase === 'success' || purchase === 'cancelled') {
+    // Clean up URL
+    window.history.replaceState({}, '', window.location.pathname)
+    return purchase
+  }
+  return null
+}
+
 function App({ user, onLogout }) {
   const { state, actions, derived } = useAppController()
   const showHydratorSmoke = isHydratorSmokeEnabled()
   const showHydratorLibraryTest = isHydratorLibraryTestEnabled()
+
+  // Handle Stripe purchase return
+  useEffect(() => {
+    const purchaseStatus = getPurchaseStatus()
+    if (purchaseStatus === 'success') {
+      // Refresh credits after successful purchase
+      api.getCredits()
+        .then(() => {
+          console.log('[purchase] Credits refreshed after successful purchase')
+          // Optionally show a toast notification here
+        })
+        .catch((err) => {
+          console.error('[purchase] Failed to refresh credits:', err)
+        })
+    } else if (purchaseStatus === 'cancelled') {
+      console.log('[purchase] Purchase cancelled by user')
+    }
+  }, [])
 
   const handleLogout = useCallback(async () => {
     onLogout()

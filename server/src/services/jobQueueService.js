@@ -22,8 +22,11 @@ export async function enqueueJob({
 
 export async function claimNextJob(workerId = 'worker-1') {
   const now = new Date()
+  const heartbeatStaleMs = Number(process.env.SESSION_HEARTBEAT_STALE_MS || 10_000)
+  const staleAt = new Date(now.getTime() - heartbeatStaleMs)
 
   // Only claim jobs for sessions that are currently visible (tab open + not paused)
+  // and still sending recent heartbeats.
   // Non-session jobs (sessionId null) are always eligible
   const candidate = await prisma.job.findFirst({
     where: {
@@ -31,7 +34,7 @@ export async function claimNextJob(workerId = 'worker-1') {
       runAt: { lte: now },
       OR: [
         { sessionId: null },
-        { session: { isVisible: true } },
+        { session: { isVisible: true, lastHeartbeatAt: { gte: staleAt } } },
       ],
     },
     orderBy: [{ priority: 'desc' }, { runAt: 'asc' }],

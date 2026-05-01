@@ -1,5 +1,4 @@
 import { prisma } from '../db/prisma.js'
-import { logger } from '../lib/logger.js'
 import { EventTypes } from '../lib/eventTypes.js'
 
 export async function publish(sessionId, type, payload = {}) {

@@ -5,6 +5,7 @@ import { TERMINAL_STATUSES, RUN_STATUS } from '../lib/uiConstants.js'
 
 const BEACON_VISIBLE = new Blob(['{"visible":true}'], { type: 'application/json' })
 const BEACON_HIDDEN = new Blob(['{"visible":false}'], { type: 'application/json' })
+const HEARTBEAT_INTERVAL_MS = 5_000
 
 function parseEventMessage(message) {
   try {
@@ -31,6 +32,11 @@ function normalizeSessionStatus(status) {
   return status === RUN_STATUS.CANCELLED ? RUN_STATUS.STOPPED : status
 }
 
+function isViewingScreen() {
+  if (typeof document === 'undefined') return true
+  return document.visibilityState === 'visible'
+}
+
 export function useSession(sessionId, onLoadSession, onEvent, onSessionAccessDenied) {
   const [status, setStatus] = useState(RUN_STATUS.IDLE)
   const [cycleCount, setCycleCount] = useState(0)
@@ -43,6 +49,10 @@ export function useSession(sessionId, onLoadSession, onEvent, onSessionAccessDen
   const onSessionAccessDeniedRef = useRef(onSessionAccessDenied)
   const lastEventIdRef = useRef(null)
   const [eventsVersion, setEventsVersion] = useState(0)
+  const [isViewing, setIsViewing] = useState(isViewingScreen)
+  const isViewingRef = useRef(isViewing)
+  const pauseTimerRef = useRef(null)
+  const lastResumeAtRef = useRef(0)
 
   useEffect(() => {
     onLoadSessionRef.current = onLoadSession
@@ -57,7 +67,11 @@ export function useSession(sessionId, onLoadSession, onEvent, onSessionAccessDen
   }, [onSessionAccessDenied])
 
   useEffect(() => {
-    if (!sessionId) return
+    isViewingRef.current = isViewing
+  }, [isViewing])
+
+  useEffect(() => {
+    if (!sessionId || !isViewing) return
 
     api.getSession(sessionId)
       .then((res) => {
@@ -76,6 +90,7 @@ export function useSession(sessionId, onLoadSession, onEvent, onSessionAccessDen
     let sse = null
     let stopped = false
     let reconnectAttempts = 0
+    let isConnecting = false
     const MAX_RECONNECT_ATTEMPTS = 5
     const BASE_RETRY_DELAY_MS = 500
     const HEALTH_CHECK_INTERVAL_MS = 30_000
@@ -86,6 +101,7 @@ export function useSession(sessionId, onLoadSession, onEvent, onSessionAccessDen
       if (!sse) return
       sse.close()
       sse = null
+      isConnecting = false
       if (healthCheckTimer) {
         clearTimeout(healthCheckTimer)
         healthCheckTimer = null
@@ -105,7 +121,7 @@ export function useSession(sessionId, onLoadSession, onEvent, onSessionAccessDen
             const delay = BASE_RETRY_DELAY_MS * Math.pow(2, reconnectAttempts - 1)
             setRunError(`Connection stale. Reconnecting... (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`)
             setTimeout(() => {
-              if (!stopped) openSse()
+              if (!stopped && isViewingRef.current) connectSse()
             }, delay)
           } else {
             setRunError('Connection lost. Please refresh.')
@@ -119,6 +135,10 @@ export function useSession(sessionId, onLoadSession, onEvent, onSessionAccessDen
     const openSse = () => {
       sse = new EventSource(api.eventsUrl(sessionId, lastEventIdRef.current))
       lastEventTime = Date.now()
+
+      sse.onopen = () => {
+        isConnecting = false
+      }
 
       sse.onmessage = (msg) => {
         lastEventTime = Date.now()
@@ -187,6 +207,7 @@ export function useSession(sessionId, onLoadSession, onEvent, onSessionAccessDen
       sse.onerror = (e) => {
         if (stopped) return
         closeSse()
+        isConnecting = false
         if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
           setRunError('Connection lost. Please refresh.')
           return
@@ -196,35 +217,73 @@ export function useSession(sessionId, onLoadSession, onEvent, onSessionAccessDen
         console.warn(`[sse] Connection error, reconnecting (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}) in ${delay}ms`, e)
         setRunError(`Connection interrupted. Reconnecting... (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`)
         setTimeout(() => {
-          if (!stopped) openSse()
+          if (!stopped && isViewingRef.current) connectSse()
         }, delay)
       }
     }
 
-    openSse()
+    const connectSse = () => {
+      if (isConnecting || sse || stopped || !isViewingRef.current) return
+      isConnecting = true
+      openSse()
+    }
+
+    connectSse()
 
     return () => {
       stopped = true
       console.log('[sse] Closing event stream for session', sessionId)
       closeSse()
     }
-  }, [sessionId, eventsVersion])
+  }, [sessionId, eventsVersion, isViewing])
 
   useEffect(() => {
     if (!sessionId) return
 
-    const beat = (visible = document.visibilityState !== 'hidden') =>
+    const beat = (visible = isViewingScreen()) =>
       api.heartbeat(sessionId, visible).catch(() => {})
 
     const beaconBeat = (visible) => {
       navigator.sendBeacon?.(`/api/sessions/${sessionId}/heartbeat`, visible ? BEACON_VISIBLE : BEACON_HIDDEN)
     }
 
-    const onVisibilityChange = () => beaconBeat(document.visibilityState !== 'hidden')
-    const onPageHide = () => beaconBeat(false)
+    const onVisibilityChange = () => {
+      const visible = isViewingScreen()
+      if (visible) {
+        if (pauseTimerRef.current) {
+          clearTimeout(pauseTimerRef.current)
+          pauseTimerRef.current = null
+        }
+        setIsViewing(true)
+        const now = Date.now()
+        if (now - lastResumeAtRef.current < 300) {
+          beaconBeat(true)
+          return
+        }
+        lastResumeAtRef.current = now
+        beaconBeat(true)
+        return
+      }
 
-    beat(true)
-    heartbeatRef.current = setInterval(beat, 15_000)
+      if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current)
+      pauseTimerRef.current = setTimeout(() => {
+        setIsViewing(false)
+        beaconBeat(false)
+        pauseTimerRef.current = null
+      }, 600)
+    }
+
+    const onPageHide = () => {
+      if (pauseTimerRef.current) {
+        clearTimeout(pauseTimerRef.current)
+        pauseTimerRef.current = null
+      }
+      setIsViewing(false)
+      beaconBeat(false)
+    }
+
+    beat(isViewingScreen())
+    heartbeatRef.current = setInterval(beat, HEARTBEAT_INTERVAL_MS)
     document.addEventListener('visibilitychange', onVisibilityChange)
     window.addEventListener('pagehide', onPageHide)
 
@@ -232,6 +291,10 @@ export function useSession(sessionId, onLoadSession, onEvent, onSessionAccessDen
       clearInterval(heartbeatRef.current)
       document.removeEventListener('visibilitychange', onVisibilityChange)
       window.removeEventListener('pagehide', onPageHide)
+      if (pauseTimerRef.current) {
+        clearTimeout(pauseTimerRef.current)
+        pauseTimerRef.current = null
+      }
     }
   }, [sessionId])
 

@@ -1006,11 +1006,7 @@
 .yk-chart,
 .frappe-chart,
 .frappe-pie-chart,
-.yk-apex-chart,
-.yk-chartjs,
 .yk-typed,
-.yk-rough,
-.yk-particles,
 .yk-mermaid,
 .mermaid {
   margin: var(--space-4) 0;
@@ -1023,11 +1019,7 @@
 .yk-chart[data-ready="1"],
 .frappe-chart[data-ready="1"],
 .frappe-pie-chart[data-ready="1"],
-.yk-apex-chart[data-ready="1"],
-.yk-chartjs[data-ready="1"],
 .yk-typed[data-ready="1"],
-.yk-rough[data-ready="1"],
-.yk-particles[data-ready="1"],
 .yk-mermaid[data-ready="1"],
 .mermaid[data-ready="1"] {
   background: transparent;

@@ -69,10 +69,25 @@ async function failOrphanedSessions() {
   }
 }
 
+async function expireStaleVisibility() {
+  const staleHeartbeatMs = Number(process.env.SESSION_HEARTBEAT_STALE_MS || 10_000)
+  const staleBefore = new Date(Date.now() - staleHeartbeatMs)
+  const { count } = await prisma.aiSession.updateMany({
+    where: {
+      isVisible: true,
+      status: { in: ACTIVE_SESSION_STATUSES },
+      lastHeartbeatAt: { lt: staleBefore },
+    },
+    data: { isVisible: false },
+  })
+  if (count > 0) logger.info('Watchdog marked stale sessions invisible', { count, staleHeartbeatMs })
+}
+
 export async function runWatchdog() {
   if (watchdogRunning) return
   watchdogRunning = true
   try {
+    await expireStaleVisibility()
     await resetStuckJobLocks()
     await failOrphanedSessions()
   } finally {

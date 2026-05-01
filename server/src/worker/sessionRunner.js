@@ -125,8 +125,14 @@ export async function runSessionCycle(ctx) {
       publish: ctx.publish,
       kind: 'video'
     })
+    await insertMediaForCycle({
+      sessionId: ctx.sessionId,
+      cycle: cycleNumber,
+      prompt: planningPrompt,
+      publish: ctx.publish,
+      kind: 'image'
+    })
   }
-  // await insertMediaForCycle({ sessionId: ctx.sessionId, cycle: cycleNumber, prompt: planningPrompt, publish: ctx.publish, kind: 'image' })
   // await insertMediaForCycle({ sessionId: ctx.sessionId, cycle: cycleNumber, prompt: planningPrompt, publish: ctx.publish, kind: 'giphy' })
 
   // Fire fast intro in parallel with planning on first cycle

@@ -650,10 +650,14 @@ sessionRoutes.get('/:sessionId/events', requireAuth, async (req, res, next) => {
 
 sessionRoutes.post('/:sessionId/heartbeat', requireAuth, route(async (req, res) => {
   const sessionId = requireId(req.params.sessionId, 'sessionId')
+  const visible = req.body?.visible !== false
 
   const result = await prisma.aiSession.updateMany({
     where: { id: sessionId, userId: req.user.id },
-    data: { lastHeartbeatAt: new Date() },
+    data: {
+      lastHeartbeatAt: new Date(),
+      isVisible: visible,
+    },
   })
 
   if (result.count === 0) return res.sendStatus(403)

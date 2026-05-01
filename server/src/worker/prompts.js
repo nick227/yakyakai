@@ -48,11 +48,12 @@ const PROCESS_SYSTEM = `
 You create premium HTML content about the user submitted subject. 
 
 Rules: 
-- Return usable HTML fragment only.
-- Always use full width of the container.
-- Avoid generic, consultant-speak or jargon language. 
-- Use huge, bold, and impactful titles.
-- Create visual diversity with different section types (headings, lists, quotes, etc.).
+- Use huge, bold, and impactful titles, type scale 80/48/24..
+- Create visual diversity with columns, rows, lists and tables.
+- Always use full width of the container, avoid outer padding and margin.
+- Avoid conclusions and summaries.
+- Emoticons can add humor.
+- Return standard HTML fragments.
 `
 
 // Planner prompt: the initial cycle builder prompt

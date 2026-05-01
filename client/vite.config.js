@@ -7,9 +7,8 @@ const CHUNK_RULES = [
   ['vendor-mermaid-core', ['mermaid', 'cytoscape', 'cose-base', 'cytoscape-cose-bilkent']],
   ['vendor-katex', ['katex']],
   ['vendor-diagram-layout', ['dagre', 'elkjs', 'd3']],
-  ['vendor-apex', ['apexcharts']],
-  ['vendor-frappe', ['frappe-charts', 'chart.js']],
-  ['vendor-effects', ['tsparticles', '@tsparticles', 'roughjs', 'typed.js']],
+  ['vendor-frappe', ['frappe-charts']],
+  ['vendor-effects', ['typed.js']],
 ]
 
 const manualChunks = (id) => {

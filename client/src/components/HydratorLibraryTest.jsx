@@ -21,36 +21,9 @@ const TEST_HTML = `
 ></div>
 
 <div
-  class="yk-apex-chart"
-  data-type="line"
-  data-series='[{"name":"Apex","data":[10,22,16,31]}]'
-  data-options='{"xaxis":{"categories":["Q1","Q2","Q3","Q4"]}}'
-></div>
-
-<div
-  class="yk-chartjs"
-  data-type="bar"
-  data-data='{"labels":["One","Two","Three"],"datasets":[{"label":"Chart.js","data":[7,3,5]}]}'
-></div>
-
-<div
   class="yk-typed"
   data-strings='["Typed.js OK","Library hydration OK","Ready"]'
   data-type-speed="28"
-></div>
-
-<div
-  class="yk-rough"
-  data-type="rectangle"
-  data-width="640"
-  data-height="180"
-  data-items='[{"x":20,"y":20,"w":140,"h":80},{"x":200,"y":60,"w":180,"h":80}]'
-></div>
-
-<div
-  class="yk-particles"
-  style="height:160px;"
-  data-config='{"fullScreen":{"enable":false},"particles":{"number":{"value":20},"size":{"value":2},"move":{"enable":true,"speed":1.2}}}'
 ></div>
 
 <div class="yk-mermaid">graph LR; Input-->Hydrator; Hydrator-->Rendered;</div>

@@ -66,4 +66,5 @@ export const api = {
   forkSession:     (id, prompt)         => post(`/api/sessions/${id}/fork`, { prompt }),
   getCredits:      ()          => get('/api/credits'),
   purchaseCredits: (packId)    => post('/api/credits/purchase', { packId }),
+  addFreeCredits:  (amount)    => post('/api/credits/free-credits', { amount }),
 }

@@ -7,6 +7,7 @@ const PACK_ORDER = ['starter', 'pro', 'power']
 export default function CreditsModal({ onClose }) {
   const [credits, setCredits] = useState(null)
   const [buying, setBuying] = useState(null)
+  const [addingFree, setAddingFree] = useState(false)
   const [error, setError] = useState(null)
 
   useEffect(() => {
@@ -31,6 +32,21 @@ export default function CreditsModal({ onClose }) {
       setError(err.message)
     } finally {
       setBuying(null)
+    }
+  }, [])
+
+  const addFreeCredits = useCallback(async () => {
+    setAddingFree(true)
+    setError(null)
+    try {
+      const data = await api.addFreeCredits(100000)
+      // Refresh credits
+      const updated = await api.getCredits()
+      setCredits(updated)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setAddingFree(false)
     }
   }, [])
 
@@ -102,6 +118,16 @@ export default function CreditsModal({ onClose }) {
               )
             })}
           </div>
+
+          <button
+            type="button"
+            className="button button-secondary"
+            onClick={addFreeCredits}
+            disabled={addingFree}
+            style={{ marginTop: '12px' }}
+          >
+            {addingFree ? 'Adding…' : 'Add 100k Free Credits (Test)'}
+          </button>
 
           <p className="text-muted text-sm credits-billing-note">
             Secure payment powered by Stripe. Credits are added immediately after successful payment.

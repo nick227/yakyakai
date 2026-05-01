@@ -154,3 +154,27 @@ creditRoutes.post('/webhook', route(async (req, res) => {
 
   res.json({ received: true })
 }))
+
+// Temporary endpoint for testing - adds free credits without Stripe
+creditRoutes.post('/free-credits', requireAuth, route(async (req, res) => {
+  const amount = Number(req.body?.amount) || 100000
+
+  await prisma.$transaction([
+    prisma.creditTransaction.create({
+      data: {
+        userId: req.user.id,
+        amount,
+        packId: 'free_test',
+        amountUsd: 0,
+        status: 'COMPLETED',
+      },
+    }),
+    prisma.user.update({
+      where: { id: req.user.id },
+      data: { creditBalance: { increment: amount } },
+    }),
+  ])
+
+  console.log(`Free credits granted: ${amount} to user ${req.user.id}`)
+  res.json({ ok: true, amount })
+}))

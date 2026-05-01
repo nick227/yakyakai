@@ -32,6 +32,7 @@
 
 .page-yakyakai .status-pill {
   max-width: 200px;
+  height: var(--control-h);
 }
 
 /* ── Auth page ──────────────────────────────────────────── */
@@ -192,11 +193,7 @@
 
 .page-yakyakai .chat-message,
 .page-yakyakai .plan-card {
-  display: grid;
-  grid-template-columns: 28px 1fr;
-  gap: var(--space-3);
-  align-items: start;
-  padding: var(--space-5);
+  display: block;
 }
 
 .plan-card ol li:not(:first-child) {
@@ -247,7 +244,6 @@
   color: var(--color-text-soft);
   font-size: var(--text-md);
   line-height: var(--line-relaxed);
-  max-width: 72ch;
   text-wrap: pretty;
 }
 

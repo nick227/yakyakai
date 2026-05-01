@@ -59,8 +59,8 @@
 }
 
 .avatar-button {
-  width: 32px;
-  height: 32px;
+  width: var(--control-h);
+  height: var(--control-h);
   display: inline-grid;
   place-items: center;
   border: 1px solid var(--color-line-strong);
@@ -698,6 +698,7 @@
 .chat-message-body {
   color: var(--color-text-soft);
   line-height: var(--line-relaxed);
+  padding: var(--space-3);
 }
 
 .chat-message-body :where(p, ul, ol, pre, blockquote) {
@@ -728,6 +729,16 @@
   color: var(--color-text-muted);
   font-style: italic;
   font-size: var(--text-sm);
+}
+
+.fast-intro-message {
+  background: color-mix(in srgb, var(--color-accent-soft) 88%, transparent);
+}
+
+.fast-intro-body {
+  color: var(--color-text);
+  font-weight: 500;
+  font-size: var(--text-md);
 }
 
 /* ── Streaming skeleton loader ─────────────────────────────────────────────── */

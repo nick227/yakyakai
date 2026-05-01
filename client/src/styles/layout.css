@@ -31,7 +31,7 @@
 .chat-stream {
   display: grid;
   gap: var(--space-5);
-  max-width: 760px;
+  width: 100%;
   margin-inline: auto;
 }
 

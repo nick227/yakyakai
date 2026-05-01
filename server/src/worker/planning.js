@@ -7,10 +7,12 @@ import { PLAN_TOOL_SCHEMA, PROMPT_COUNT } from './constants.js'
 import {
   buildPlannerPrompt,
   buildRestartPlannerPrompt,
-  buildNextPromptPrompt
+  buildNextPromptPrompt,
+  buildFastIntroPrompt
 } from './prompts.js'
 import { getRandomNotice } from './notices.js'
 import { publishNotice } from './events.js'
+import { EventTypes } from '../lib/eventTypes.js'
 
 /**
  * Tuned temperatures by task type.
@@ -18,7 +20,8 @@ import { publishNotice } from './events.js'
 const TEMP = {
   initialPlan: 0.4,
   cyclePlan: 0.5,
-  nextPrompt: 0.7
+  nextPrompt: 0.7,
+  fastIntro: 0.8
 }
 
 /* -------------------------------------------------------------------------- */
@@ -124,6 +127,36 @@ export async function runPlanningPhase(ctx) {
 /* -------------------------------------------------------------------------- */
 /* Adjacent Prompt Discovery                                                  */
 /* -------------------------------------------------------------------------- */
+
+/**
+ * Generates a fast enthusiastic introduction for the user's idea.
+ * Skips plan limiter and usage tracking for maximum speed.
+ */
+export async function getFastIntro({
+  session,
+  sessionId,
+  subject,
+  publish
+}) {
+  const signal = beginSessionAiCall(sessionId)
+  const promptText = buildFastIntroPrompt({ subject })
+
+  try {
+    // Direct AI call - skip plan limiter and usage tracking for speed
+    const result = await callAI({
+      system: promptText.system,
+      user: promptText.user,
+      temperature: TEMP.fastIntro,
+      signal
+    })
+
+    const intro = result.trim()
+    await publish(sessionId, EventTypes.FAST_INTRO, { intro })
+    return intro
+  } finally {
+    endSessionAiCall(sessionId, signal)
+  }
+}
 
 /**
  * Generates one new related direction to explore next.

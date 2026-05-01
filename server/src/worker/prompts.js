@@ -28,16 +28,31 @@ Rules:
 - Return only the subject text.
 `
 
+// Used for fast intro message - enthusiastic and reassuring
+const FAST_INTRO_SYSTEM = `
+You write a single enthusiastic, reassuring paragraph that introduces the user's idea in a very positive way.
+
+Goal:
+Make the user feel excited and confident about their idea.
+
+Rules:
+- Be genuinely enthusiastic and warm.
+- Acknowledge the value and potential of their idea.
+- Keep it to one paragraph only.
+- Be concise but impactful.
+- No markdown, no formatting, just plain text.
+`
+
 // Used by the process agent to generate final HTML content.
 const PROCESS_SYSTEM = `
 You create premium HTML content about the user submitted subject. 
 
 Rules: 
-- Return clean minimal HTML fragment only (no markdown, no explanations).
-- Prioritize scanability and consistency. 
+- Return usable HTML fragment only.
 - Always use full width of the container.
 - Avoid generic, consultant-speak or jargon language. 
-- Avoid background or font colors except for intended emphasis.
+- Use huge, bold, and impactful titles.
+- Create visual diversity with different section types (headings, lists, quotes, etc.).
 `
 
 // Planner prompt: the initial cycle builder prompt
@@ -59,9 +74,11 @@ export function buildProcessPrompt({ prompt, position }) {
 
 // Extra prompt: generates extra instructions for process prompt
 function generateExtraPrompt(position) {
-  let chart = position % 2 === 0 ? CHART_TYPES_PROMPTS[Math.floor(Math.random() * CHART_TYPES_PROMPTS.length)] : '';
-  let blueprint = BLUEPRINT_STYLE_PROMPTS[Math.floor(Math.random() * BLUEPRINT_STYLE_PROMPTS.length)]
-  blueprint += BLUEPRINT_STYLE_PROMPTS[Math.floor(Math.random() * BLUEPRINT_STYLE_PROMPTS.length)]
+  if(position === 0) {
+    return [];
+  }
+  let chart = position % 3 === 0 ? CHART_TYPES_PROMPTS[Math.floor(Math.random() * CHART_TYPES_PROMPTS.length)] : '';
+  const blueprint = position % 3 === 0 ? BLUEPRINT_STYLE_PROMPTS[Math.floor(Math.random() * BLUEPRINT_STYLE_PROMPTS.length)] : '';
 
   return [chart, blueprint]
 }
@@ -88,5 +105,13 @@ Previous session focus: ${previousPrompt}
 New instruction (PRIORITY): ${restartInstruction}
 
 Continue the work, strongly applying the new instruction.`
+  }
+}
+
+// Fast intro prompt: generates an enthusiastic introduction
+export function buildFastIntroPrompt({ subject }) {
+  return {
+    system: FAST_INTRO_SYSTEM,
+    user: `Write an enthusiastic introduction for: ${subject}`
   }
 }

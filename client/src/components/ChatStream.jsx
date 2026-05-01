@@ -187,30 +187,41 @@ const ChatMessage = memo(function ChatMessage({ msg, index }) {
   const isUser = msg.role === 'USER'
   const metadata = parseMetadataSafe(msg.metadata)
   const isNotice = metadata.isNotice
+  const isFastIntro = metadata.isFastIntro
   const isMedia = metadata.isMedia
   const messageBodyRef = useRef(null)
 
   useEffect(() => {
-    if (messageBodyRef.current && !isUser && !isNotice) {
+    if (messageBodyRef.current && !isUser && !isNotice && !isFastIntro) {
       hydrateChatContent(messageBodyRef.current)
     }
-  }, [msg.content, isUser, isNotice])
-  
+  }, [msg.content, isUser, isNotice, isFastIntro])
+
   if (isUser) {
     return (
       <article className="chat-message user-message">
-        <div className="msg-avatar user-avatar" aria-hidden="true">U</div>
         <div className="msg-content">
           <div className="chat-message-body user-content">{msg.content}</div>
         </div>
       </article>
     )
   }
-  
+
+  if (isFastIntro) {
+    return (
+      <article className='chat-message fast-intro-message'>
+        
+        <div className="msg-content">
+          <div className="chat-message-body fast-intro-body">{msg.content}</div>
+        </div>
+      </article>
+    )
+  }
+
   if (isNotice) {
     return (
       <article className='chat-message notice-message'>
-        <div className="msg-avatar" aria-hidden="true"><Bot size={13} /></div>
+        
         <div className="msg-content">
           <div className="chat-message-body notice-body">{msg.content}</div>
         </div>
@@ -225,7 +236,7 @@ const ChatMessage = memo(function ChatMessage({ msg, index }) {
     })
     return (
       <article className='chat-message media-message'>
-        <div className="msg-avatar" aria-hidden="true"><Bot size={13} /></div>
+        
         <div className="msg-content">
           <div className="chat-message-body" ref={messageBodyRef} dangerouslySetInnerHTML={{ __html: safe }} />
         </div>
@@ -235,12 +246,8 @@ const ChatMessage = memo(function ChatMessage({ msg, index }) {
 
   return (
     <article className='chat-message'>
-      <div className="msg-avatar" aria-hidden="true"><Bot size={13} /></div>
+      
       <div className="msg-content">
-        <div className="chat-message-header">
-          <span className="pill small-pill">#{(metadata.index ?? index) + 1}</span>
-          {metadata.cycle > 1 && <span className="pill small-pill">C{metadata.cycle}</span>}
-        </div>
         <div className="chat-message-body" ref={messageBodyRef} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(msg.content || '') }} />
       </div>
     </article>
@@ -253,11 +260,7 @@ const PlanCard = memo(function PlanCard({ plan }) {
 
   return (
     <article className="plan-card">
-      <div className="msg-avatar" aria-hidden="true"><ListChecks size={13} /></div>
       <div className="msg-content">
-        <div className="chat-message-header">
-          <span className="pill small-pill">Plan</span>
-        </div>
         <ol>
           {visible?.map((item, index) => (
             <li key={index}>{item}</li>
@@ -271,7 +274,7 @@ const PlanCard = memo(function PlanCard({ plan }) {
 function SkeletonLoader() {
   return (
     <article className="chat-message skeleton-message">
-      <div className="msg-avatar" aria-hidden="true"><Bot size={13} /></div>
+      
       <div className="msg-content">
         <div className="skeleton-header">
           <div className="skeleton-pill" />

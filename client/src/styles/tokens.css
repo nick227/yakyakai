@@ -31,7 +31,7 @@
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
   --text-md: 1rem;
-  --text-lg: 1.125rem;
+  --text-lg: 1.5rem;
   --text-xl: 1.35rem;
   --text-2xl: clamp(1.65rem, 3vw, 2.25rem);
 
@@ -62,7 +62,7 @@
   --page-max: 1180px;
   --panel-max: 780px;
   --topbar-h: 56px;
-  --control-h: 44px;
+  --control-h: 33px;
 
   /* Motion */
   --ease-standard: cubic-bezier(.2, .8, .2, 1);

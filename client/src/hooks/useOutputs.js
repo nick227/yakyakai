@@ -79,6 +79,21 @@ export function useOutputs(riverRef, onScrollToBottom) {
           return [...prev, newMessage]
         })
         break
+      case EventTypes.FAST_INTRO:
+        console.log('[sse] Fast intro received:', ev.payload?.intro)
+        setChatMessages((prev) => {
+          const newMessage = {
+            id: `fast-intro-${ev.ts || Date.now()}`,
+            clientId: `fast-intro-${ev.ts || Date.now()}`,
+            role: 'ASSISTANT',
+            content: ev.payload?.intro || '',
+            createdAt: new Date().toISOString(),
+            metadata: JSON.stringify({ isFastIntro: true }),
+          }
+          console.log('[sse] Adding fast intro message to chat:', newMessage)
+          return [...prev, newMessage]
+        })
+        break
       default:
         break
     }

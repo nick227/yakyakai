@@ -7,7 +7,7 @@ import { EventTypes } from '../lib/eventTypes.js'
 import { paceMs } from '../lib/pace.js'
 import { isAbortError } from '../services/sessionAbortService.js'
 import { MAX_CYCLES } from './constants.js'
-import { runPlanningPhase, evolveCycle } from './planning.js'
+import { runPlanningPhase, evolveCycle, getFastIntro } from './planning.js'
 import { runPlanCycle } from '../ai/planRuntime.js'
 import { insertMediaForCycle } from '../media/insertMediaForCycle.js'
 
@@ -127,6 +127,16 @@ export async function runSessionCycle(ctx) {
   // await insertMediaForCycle({ sessionId: ctx.sessionId, cycle: cycleNumber, prompt: planningPrompt, publish: ctx.publish, kind: 'image' })
   // await insertMediaForCycle({ sessionId: ctx.sessionId, cycle: cycleNumber, prompt: planningPrompt, publish: ctx.publish, kind: 'giphy' })
 
+  // Fire fast intro in parallel with planning on first cycle
+  const fastIntroPromise = ctx.cycle === 0
+    ? getFastIntro({
+        session: ctx.session,
+        sessionId: ctx.sessionId,
+        subject: planningPrompt,
+        publish: ctx.publish
+      }).catch(() => {})
+    : Promise.resolve()
+
   const plan = await runPlanningPhase({
     session: ctx.session,
     sessionId: ctx.sessionId,
@@ -136,6 +146,9 @@ export async function runSessionCycle(ctx) {
     previousPrompt: ctx.previousPrompt,
     restartInstruction: ctx.restartInstruction
   })
+
+  // Wait for fast intro to complete (fire and forget, but ensure it finishes before we continue)
+  await fastIntroPromise
 
   if (ctx.cycle === 0) {
     await prisma.aiSession.update({

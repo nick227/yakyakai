@@ -25,8 +25,7 @@ function titleFromPrompt(prompt) {
 }
 
 async function getSessionStatus(sessionId) {
-  const s = await prisma.aiSession.findUnique({ where: { id: sessionId }, select: { status: true } })
-  return s?.status ?? null
+  return prisma.aiSession.findUnique({ where: { id: sessionId }, select: { status: true, isVisible: true } })
 }
 
 function parseJobPayload(payloadJson) {
@@ -88,8 +87,8 @@ async function enqueueNextCycle(ctx) {
     return ctx
   }
 
-  if (afterSession.status === 'paused') {
-    await ctx.publish(ctx.sessionId, EventTypes.STATUS, { status: 'paused', cycle: ctx.cycle })
+  if (afterSession.status === 'paused' || afterSession.status === 'paused_idle') {
+    await ctx.publish(ctx.sessionId, EventTypes.STATUS, { status: afterSession.status, cycle: ctx.cycle })
     return ctx
   }
 
@@ -182,7 +181,9 @@ export async function runSessionCycle(ctx) {
   ctx = await runExecutionPhase(ctx)
 
   if (ctx.outputs.paused) {
-    await ctx.publish(ctx.sessionId, EventTypes.STATUS, { status: 'paused', cycle: cycleNumber })
+    const s = await getSessionStatus(ctx.sessionId)
+    const pauseStatus = s?.status === 'paused_idle' ? 'paused_idle' : 'paused'
+    await ctx.publish(ctx.sessionId, EventTypes.STATUS, { status: pauseStatus, cycle: cycleNumber })
     return ctx
   }
   if (ctx.outputs.stopped) {

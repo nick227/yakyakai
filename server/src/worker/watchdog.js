@@ -83,11 +83,44 @@ async function expireStaleVisibility() {
   if (count > 0) logger.info('Watchdog marked stale sessions invisible', { count, staleHeartbeatMs })
 }
 
+async function pauseIdleSessions() {
+  const idlePauseMs = Number(process.env.SESSION_IDLE_PAUSE_MS || 45_000)
+  const staleBefore = new Date(Date.now() - idlePauseMs)
+  const idle = await prisma.aiSession.findMany({
+    where: {
+      status: { in: ACTIVE_SESSION_STATUSES },
+      isVisible: false,
+      lastHeartbeatAt: { lt: staleBefore },
+    },
+    select: { id: true },
+    take: 100,
+  })
+  for (const session of idle) {
+    try {
+      await prisma.$transaction([
+        prisma.job.updateMany({
+          where: { sessionId: session.id, status: 'queued', type: { in: ['session.cycle', 'session.start'] } },
+          data: { status: 'cancelled' },
+        }),
+        prisma.aiSession.update({
+          where: { id: session.id },
+          data: { status: 'paused_idle' },
+        }),
+      ])
+      await publish(session.id, EventTypes.STATUS, { status: 'paused_idle' })
+      logger.info('Watchdog idle-paused session', { sessionId: session.id })
+    } catch (err) {
+      logger.error('Watchdog failed to idle-pause session', { sessionId: session.id, error: err.message })
+    }
+  }
+}
+
 export async function runWatchdog() {
   if (watchdogRunning) return
   watchdogRunning = true
   try {
     await expireStaleVisibility()
+    await pauseIdleSessions()
     await resetStuckJobLocks()
     await failOrphanedSessions()
   } finally {

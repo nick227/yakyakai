@@ -648,19 +648,38 @@ sessionRoutes.get('/:sessionId/events', requireAuth, async (req, res, next) => {
 
 // ── Heartbeat ─────────────────────────────────────────────────────────────────
 
+const IDLE_PAUSE_STATUSES = new Set(['queued', 'planning', 'running', 'expanding', 'cycling'])
+
 sessionRoutes.post('/:sessionId/heartbeat', requireAuth, route(async (req, res) => {
   const sessionId = requireId(req.params.sessionId, 'sessionId')
   const visible = req.body?.visible !== false
 
-  const result = await prisma.aiSession.updateMany({
+  const session = await prisma.aiSession.findFirst({
     where: { id: sessionId, userId: req.user.id },
-    data: {
-      lastHeartbeatAt: new Date(),
-      isVisible: visible,
-    },
+    select: { id: true, status: true },
   })
+  if (!session) return res.sendStatus(403)
 
-  if (result.count === 0) return res.sendStatus(403)
+  if (!visible && IDLE_PAUSE_STATUSES.has(session.status)) {
+    await prisma.$transaction([
+      prisma.job.updateMany({
+        where: { sessionId, status: 'queued', type: { in: ['session.cycle', 'session.start'] } },
+        data: { status: 'cancelled' },
+      }),
+      prisma.aiSession.update({
+        where: { id: sessionId },
+        data: { status: 'paused_idle', isVisible: false, lastHeartbeatAt: new Date() },
+      }),
+    ])
+    abortSessionAiCall(sessionId)
+    await publish(sessionId, EventTypes.STATUS, { status: 'paused_idle' })
+    return res.sendStatus(204)
+  }
+
+  await prisma.aiSession.update({
+    where: { id: sessionId },
+    data: { lastHeartbeatAt: new Date(), isVisible: visible },
+  })
   res.sendStatus(204)
 }))
 

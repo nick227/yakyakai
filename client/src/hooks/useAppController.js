@@ -148,14 +148,15 @@ export function useAppController() {
   const resumeRun = useCallback(async () => {
     if (!sessionId) return
     setRunError(null)
+    const prevStatus = status
     setStatus(RUN_STATUS.RUNNING)
     try {
       await api.resume(sessionId)
     } catch (err) {
-      setStatus(RUN_STATUS.PAUSED)
+      setStatus(prevStatus)
       setRunError(err.message || 'Unable to resume run')
     }
-  }, [sessionId, setStatus, setRunError])
+  }, [sessionId, status, setStatus, setRunError])
 
   const stopRun = useCallback(async () => {
     if (!sessionId) return
@@ -196,9 +197,9 @@ export function useAppController() {
   // Derived values
   const isActive = Boolean(sessionId) && !TERMINAL_STATUSES.has(status)
   const canStart = Boolean(prompt.trim()) && !isActive
-  const canPause = isActive && status !== RUN_STATUS.PAUSED
-  const canResume = Boolean(sessionId) && status === RUN_STATUS.PAUSED
-  const canStop = isActive || status === RUN_STATUS.PAUSED
+  const canPause = isActive && status !== RUN_STATUS.PAUSED && status !== RUN_STATUS.PAUSED_IDLE
+  const canResume = Boolean(sessionId) && (status === RUN_STATUS.PAUSED || status === RUN_STATUS.PAUSED_IDLE)
+  const canStop = isActive || status === RUN_STATUS.PAUSED || status === RUN_STATUS.PAUSED_IDLE
   const canFork = Boolean(prompt.trim()) && Boolean(sessionId)
   const promptCount = prompt.length
   const approxTokens = Math.ceil(promptCount / 4)

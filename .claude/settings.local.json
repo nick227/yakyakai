@@ -27,7 +27,9 @@
       "Bash(node run.js /tmp/playwright-test-credits.js)",
       "Bash(node run.js \"C:/wamp64/tmp/credits-smoke.js\")",
       "Bash(node run.js ' *)",
-      "Bash(curl -s http://localhost:3001/api/sessions -H \"Cookie: yakyakai_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbW9nZXV4cHUwMDAwdXR4b2tkcWwwdW9hIiwiZW1haWwiOiJuaWNob2xhcy5qYXkucmlvc0BnbWFpbC5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NzcyNjY5MDgsImV4cCI6MTc3NzM1MzMwOH0.e2ltQWOZrdc7zdUp8809KaRTRWvSYVlraTpUWM_Ciko\")"
+      "Bash(curl -s http://localhost:3001/api/sessions -H \"Cookie: yakyakai_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbW9nZXV4cHUwMDAwdXR4b2tkcWwwdW9hIiwiZW1haWwiOiJuaWNob2xhcy5qYXkucmlvc0BnbWFpbC5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NzcyNjY5MDgsImV4cCI6MTc3NzM1MzMwOH0.e2ltQWOZrdc7zdUp8809KaRTRWvSYVlraTpUWM_Ciko\")",
+      "Bash(Get-ChildItem -Path \"c:\\\\wamp64\\\\www\\\\yakyakai.com\" -Filter \"schema.prisma\" -Recurse -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object -ExpandProperty FullName)"
     ]
   }
 }

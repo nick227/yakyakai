@@ -270,7 +270,7 @@ export function useSession(sessionId, onLoadSession, onEvent, onSessionAccessDen
         setIsViewing(false)
         beaconBeat(false)
         pauseTimerRef.current = null
-      }, 600)
+      }, 50)
     }
 
     const onPageHide = () => {

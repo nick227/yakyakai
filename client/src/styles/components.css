@@ -1030,3 +1030,7 @@ iframe.aspect-video {
   width: 100%;
   min-height: 460px;
 }
+
+.skeleton-header {
+  margin-top: 2em;
+}

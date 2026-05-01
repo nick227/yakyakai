@@ -7,7 +7,7 @@ import { route } from '../lib/route.js'
 import { requireString, requireId, optionalInt, optionalString } from '../lib/validation.js'
 import { forbidden } from '../lib/httpError.js'
 import { EventTypes } from '../lib/eventTypes.js'
-import { VALID_PACES } from '../lib/pace.js'
+import { VALID_PACES, DEFAULT_PACE } from '../lib/pace.js'
 import { logger } from '../lib/logger.js'
 import { publish } from '../worker/events.js'
 import { abortSessionAiCall } from '../services/sessionAbortService.js'
@@ -70,7 +70,7 @@ sessionRoutes.get('/sessions', route(async (req, res) => {
   const cursor = optionalString(req.query?.cursor, 'cursor', { max: 64, fallback: null })
   logger.info('[PublicGallery] Querying public sessions', { take, cursor })
   const sessions = await prisma.aiSession.findMany({
-    where: { isVisible: true },
+    where: { isPublic: true },
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
     take: take + 1,
@@ -181,7 +181,7 @@ sessionRoutes.get('/', requireAuth, route(async (req, res) => {
  *               pace:
  *                 type: string
  *                 enum: [steady, fast, thorough]
- *                 default: steady
+ *                 default: fast
  *               clientId:
  *                 type: string
  *                 maxLength: 80
@@ -208,7 +208,7 @@ sessionRoutes.get('/', requireAuth, route(async (req, res) => {
  */
 sessionRoutes.post('/start', requireAuth, route(async (req, res) => {
   const originalPrompt = requireString(req.body?.prompt, 'prompt', { max: 24_000 })
-  const pace = VALID_PACES.includes(req.body?.pace) ? req.body.pace : 'steady'
+  const pace = VALID_PACES.includes(req.body?.pace) ? req.body.pace : DEFAULT_PACE
   const clientId = optionalString(req.body?.clientId, 'clientId', { max: 80, fallback: null })
 
   logger.info('Session start', { userId: req.user.id, pace, promptLength: originalPrompt.length })
@@ -288,7 +288,7 @@ sessionRoutes.get('/:sessionId', optionalAuth, route(async (req, res) => {
       status: true,
       cycleCount: true,
       pace: true,
-      isVisible: true,
+      isPublic: true,
       userId: true,
       createdAt: true,
       updatedAt: true,
@@ -919,13 +919,13 @@ sessionRoutes.post('/:sessionId/fork', requireAuth, route(async (req, res) => {
 
   const parentSession = await prisma.aiSession.findUnique({
     where: { id: sessionId },
-    select: { id: true, isVisible: true, originalPrompt: true, currentPrompt: true, user: { select: { name: true } } },
+    select: { id: true, isPublic: true, originalPrompt: true, currentPrompt: true, user: { select: { name: true } } },
   })
   if (!parentSession) {
     return res.status(404).json({ ok: false, error: 'SESSION_NOT_FOUND', message: 'Session not found.' })
   }
-  if (!parentSession.isVisible) {
-    return res.status(403).json({ ok: false, error: 'SESSION_NOT_VISIBLE', message: 'Cannot fork a private session.' })
+  if (!parentSession.isPublic) {
+    return res.status(403).json({ ok: false, error: 'SESSION_NOT_PUBLIC', message: 'Cannot fork a private session.' })
   }
 
   const parentPrompt = parentSession.currentPrompt || parentSession.originalPrompt
@@ -937,7 +937,7 @@ sessionRoutes.post('/:sessionId/fork', requireAuth, route(async (req, res) => {
       originalPrompt: prompt,
       parentSessionId: sessionId,
       status: 'queued',
-      pace: 'steady',
+      pace: DEFAULT_PACE,
       isVisible: true,
       lastHeartbeatAt: new Date(),
       messages: {

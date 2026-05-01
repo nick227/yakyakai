@@ -36,29 +36,40 @@ const PHASE = {
  * @returns {Object} Updated context after cycle completion
  */
 export async function runSessionCycle(ctx) {
-  // Phase 1: Planning - generate plan, insert media, update session state
+  ctx = { ...ctx, cycleStartedAt: Date.now() }
+
+  const cycleNumber = ctx.cycle + 1
+  const contentPrompt = ctx.hasRestartContext
+    ? ctx.previousPrompt
+    : (ctx.currentPrompt || ctx.session.currentPrompt || ctx.session.originalPrompt)
+
+  // ── Pre-planning content sources (fire-and-forget, run concurrently with planning) ──
+  if (ctx.cycle === 0) {
+    insertCycleMedia(ctx.sessionId, cycleNumber, contentPrompt, ctx.publish, 'video').catch(() => {})
+    // Add additional top-of-session third-party sources here
+  }
+
+  // Phase 1: Planning
   ctx.phase = PHASE.PLANNING
   ctx = await runPlanningOrchestration(ctx)
 
-  // Phase 2: Execution - run plan steps, handle pause/stop conditions
+  // Phase 2: Execution
   ctx.phase = PHASE.EXECUTION
   ctx = await runExecutionPhase(ctx)
 
-  // Early exit if execution was paused or stopped
-  if (ctx.outputs.paused || ctx.outputs.stopped) {
-    return ctx
-  }
+  if (ctx.outputs.paused || ctx.outputs.stopped) return ctx
 
-  // Insert image after execution so it renders after plan content
+  // ── Post-execution content sources (awaited, render after AI content) ──
   if (ctx.cycle === 0) {
-    await insertCycleMedia(ctx.sessionId, ctx.cycle + 1, ctx.currentPrompt, ctx.publish, 'image')
+    await insertCycleMedia(ctx.sessionId, cycleNumber, contentPrompt, ctx.publish, 'image')
+    // Add additional bottom-of-session third-party sources here
   }
 
-  // Phase 3: Evolution - generate next prompt for continued exploration
+  // Phase 3: Evolution
   ctx.phase = PHASE.EVOLUTION
   ctx = await runEvolutionOrchestration(ctx)
 
-  // Phase 4: Enqueue - schedule next cycle or complete session
+  // Phase 4: Enqueue
   ctx.phase = PHASE.ENQUEUE
   return enqueueNextCycle(ctx)
 }
@@ -72,7 +83,7 @@ export async function runSessionCycle(ctx) {
  * @param {Object} publish - SSE publish callback function
  */
 export async function runSessionJob(job, { publish }) {
-  const sessionId = job.sessionId
+  const { sessionId } = job
   if (!sessionId) throw new Error('Job missing sessionId')
 
   // Fetch and validate session

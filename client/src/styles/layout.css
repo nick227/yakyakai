@@ -24,13 +24,11 @@
 .stream-column {
   min-height: 0;
   overflow-y: auto;
-  padding: var(--space-8) var(--space-4) 12rem;
   scrollbar-gutter: stable;
+  padding: var(--space-2)
 }
 
 .chat-stream {
-  display: grid;
-  gap: var(--space-5);
   width: 100%;
   margin-inline: auto;
 }
@@ -154,10 +152,6 @@
 
   .chat-shell {
     width: 100%;
-  }
-
-  .stream-column {
-    padding: var(--space-6) var(--space-3) 13rem;
   }
 
   .composer-dock {

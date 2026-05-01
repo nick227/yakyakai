@@ -13,6 +13,7 @@ import {
 import { getRandomNotice } from './notices.js'
 import { publishNotice } from './events.js'
 import { EventTypes } from '../lib/eventTypes.js'
+import { emitMetric } from '../lib/metrics.js'
 
 /**
  * Tuned temperatures by task type.
@@ -39,7 +40,7 @@ async function runPlanningStep({
   const promptText = buildPrompt()
   const signal = beginSessionAiCall(sessionId)
   try {
-    const rawPlan = await runPlanTask(() =>
+    const { result: rawPlan, slotMetrics } = await runPlanTask(() =>
       runAccountedAiCall({
         userId: session.userId,
         sessionId,
@@ -57,6 +58,12 @@ async function runPlanningStep({
           })
       })
     )
+    emitMetric('planner_slot_wait_ms', slotMetrics.aiQueueWaitMs, {
+      sessionId,
+      phase,
+      aiActiveCount: slotMetrics.aiActiveCount,
+      aiMaxConcurrent: slotMetrics.aiMaxConcurrent,
+    })
 
     return normalizePlan(rawPlan, PROMPT_COUNT)
   } finally {
@@ -173,7 +180,7 @@ export async function getNextPrompt({
   })
 
   try {
-    const result = await runPlanTask(() =>
+    const { result, slotMetrics } = await runPlanTask(() =>
       runAccountedAiCall({
         userId: session.userId,
         sessionId,
@@ -189,6 +196,12 @@ export async function getNextPrompt({
           })
       })
     )
+    emitMetric('planner_slot_wait_ms', slotMetrics.aiQueueWaitMs, {
+      sessionId,
+      phase: 'planner.next',
+      aiActiveCount: slotMetrics.aiActiveCount,
+      aiMaxConcurrent: slotMetrics.aiMaxConcurrent,
+    })
 
     return result.trim()
   } finally {

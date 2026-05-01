@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from '../api/client.js'
 import { EventTypes } from '../lib/eventTypes.js'
 import { TERMINAL_STATUSES, RUN_STATUS } from '../lib/uiConstants.js'
+import { emitMetric } from '../lib/metrics.js'
 
 const BEACON_VISIBLE = new Blob(['{"visible":true}'], { type: 'application/json' })
 const BEACON_HIDDEN = new Blob(['{"visible":false}'], { type: 'application/json' })
@@ -37,6 +38,14 @@ function isViewingScreen() {
   return document.visibilityState === 'visible'
 }
 
+function hasVisibleContent(ev) {
+  if (!ev?.payload) return false
+  if (ev.type === EventTypes.OUTPUT) return Boolean(String(ev.payload.html || '').trim())
+  if (ev.type === EventTypes.FAST_INTRO) return Boolean(String(ev.payload.intro || '').trim())
+  if (ev.type === EventTypes.NOTICE) return Boolean(String(ev.payload.message || '').trim())
+  return false
+}
+
 export function useSession(sessionId, onLoadSession, onEvent, onSessionAccessDenied) {
   const [status, setStatus] = useState(RUN_STATUS.IDLE)
   const [cycleCount, setCycleCount] = useState(0)
@@ -53,6 +62,8 @@ export function useSession(sessionId, onLoadSession, onEvent, onSessionAccessDen
   const isViewingRef = useRef(isViewing)
   const pauseTimerRef = useRef(null)
   const lastResumeAtRef = useRef(0)
+  const sseSessionStartAtRef = useRef(0)
+  const ttfrEmittedRef = useRef(false)
 
   useEffect(() => {
     onLoadSessionRef.current = onLoadSession
@@ -72,6 +83,8 @@ export function useSession(sessionId, onLoadSession, onEvent, onSessionAccessDen
 
   useEffect(() => {
     if (!sessionId || !isViewing) return
+    sseSessionStartAtRef.current = Date.now()
+    ttfrEmittedRef.current = false
 
     api.getSession(sessionId)
       .then((res) => {
@@ -133,7 +146,7 @@ export function useSession(sessionId, onLoadSession, onEvent, onSessionAccessDen
     }
 
     const openSse = () => {
-      sse = new EventSource(api.eventsUrl(sessionId, lastEventIdRef.current))
+      sse = new EventSource(api.eventsUrl(sessionId, lastEventIdRef.current), { withCredentials: true })
       lastEventTime = Date.now()
 
       sse.onopen = () => {
@@ -155,6 +168,14 @@ export function useSession(sessionId, onLoadSession, onEvent, onSessionAccessDen
         if (ev.eventId) lastEventIdRef.current = ev.eventId
 
         console.log('[sse] Event received:', ev.type, 'payload:', ev.payload, 'ts:', ev.ts)
+        if (!ttfrEmittedRef.current && hasVisibleContent(ev)) {
+          const ttfrMs = Math.max(0, Date.now() - sseSessionStartAtRef.current)
+          emitMetric('ttfr_ms', ttfrMs, {
+            sessionId,
+            eventType: ev.type,
+          })
+          ttfrEmittedRef.current = true
+        }
 
         // Forward all events to parent handler
         onEventRef.current?.(ev)

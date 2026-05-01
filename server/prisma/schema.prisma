@@ -87,6 +87,7 @@ model AiSession {
   nextEligibleAt  DateTime      @default(now())
   lastHeartbeatAt DateTime?
   isVisible       Boolean       @default(true)
+  isPublic        Boolean       @default(true)
   parentSessionId String?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
@@ -103,6 +104,7 @@ model AiSession {
   @@index([status, isVisible, nextEligibleAt])
   @@index([isVisible, createdAt])
   @@index([isVisible, updatedAt])
+  @@index([isPublic, updatedAt])
   @@index([parentSessionId])
 }
 

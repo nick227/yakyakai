@@ -11,6 +11,8 @@ export default function AuthGate({ onAuth }) {
   const [busy, setBusy] = useState(false)
   const googleBtnRef = useRef(null)
   const googleCallbackRef = useRef(null)
+  const googleClientId = String(import.meta.env.VITE_GOOGLE_CLIENT_ID || '').trim()
+  const canUseGoogleAuth = googleClientId.length > 0
   googleCallbackRef.current = async ({ credential }) => {
     setBusy(true)
     setError(null)
@@ -36,10 +38,12 @@ export default function AuthGate({ onAuth }) {
 
   // Load Google Identity Services and render button + One Tap
   useEffect(() => {
+    if (!canUseGoogleAuth) return
+
     function initGoogle() {
       if (!window.google?.accounts?.id || !googleBtnRef.current) return
       window.google.accounts.id.initialize({
-        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+        client_id: googleClientId,
         callback: (response) => googleCallbackRef.current(response),
       })
       window.google.accounts.id.renderButton(googleBtnRef.current, {
@@ -65,7 +69,7 @@ export default function AuthGate({ onAuth }) {
     return () => {
       if (document.head.contains(script)) document.head.removeChild(script)
     }
-  }, [])
+  }, [canUseGoogleAuth, googleClientId])
 
   async function submit(e) {
     e.preventDefault()
@@ -117,7 +121,7 @@ export default function AuthGate({ onAuth }) {
     setError(null)
   }
 
-  const showGoogleButton = mode === 'login' || mode === 'register'
+  const showGoogleButton = canUseGoogleAuth && (mode === 'login' || mode === 'register')
 
   return (
     <AppFrame status={RUN_STATUS.IDLE}>
@@ -160,6 +164,9 @@ export default function AuthGate({ onAuth }) {
                     <div ref={googleBtnRef} className="google-btn-wrap" />
                     <div className="auth-divider"><span>or</span></div>
                   </>
+                )}
+                {!canUseGoogleAuth && (mode === 'login' || mode === 'register') && (
+                  <p className="run-note">Google sign-in is unavailable. Set `VITE_GOOGLE_CLIENT_ID` to enable it.</p>
                 )}
 
                 {mode === 'register' && (

@@ -29,6 +29,7 @@ export function buildCycleContext(session, job, publish) {
     cycle,
     phase: null,
     plan: null,
+    plannerPromise: null,
     outputs: null,
     restartInstruction,
     previousPrompt: restartSourcePrompt,

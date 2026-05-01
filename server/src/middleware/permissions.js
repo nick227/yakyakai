@@ -32,7 +32,7 @@ export async function assertOwnsJob(userId, jobId) {
 }
 
 export function canReadSession(user, session) {
-  return session.isVisible || session.userId === user?.id
+  return session.isPublic || session.userId === user?.id
 }
 
 export function canWriteSession(user, session) {

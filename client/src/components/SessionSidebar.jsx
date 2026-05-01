@@ -47,8 +47,8 @@ export default function SessionSidebar({ isOpen, currentSessionId, onClose, onNa
       const items = res.sessions || []
       setSessions((prev) => (reset ? items : [...prev, ...items]))
       setNextCursor(res.nextCursor || null)
-    } catch {
-      // silent — sidebar is non-critical
+    } catch (err) {
+      console.error('[SessionSidebar] Failed to load sessions:', err)
     } finally {
       if (reset) setLoading(false)
       else setLoadingMore(false)

@@ -196,15 +196,12 @@
   display: block;
 }
 
-.plan-card ol li:not(:first-child) {
-  display: none;
+.plan-card ol {
+  list-style-type: circle;
 }
 
-.plan-card ol li:first-child {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+.plan-card ol li {
+  padding: 10px 0;
 }
 
 .page-yakyakai .msg-avatar {
@@ -245,6 +242,7 @@
   font-size: var(--text-md);
   line-height: var(--line-relaxed);
   text-wrap: pretty;
+  width: 100%;
 }
 
 .page-yakyakai .chat-message-body :where(h1, h2, h3) {

@@ -17,7 +17,7 @@ export function useAppController() {
   })
   
   const [prompt, setPrompt] = useState('')
-  const [pace, setPace] = useState(PACE.STEADY)
+  const [pace, setPace] = useState(PACE.FAST)
   const riverRef = useRef(null)
   const pendingScrollRef = useRef(null)
 

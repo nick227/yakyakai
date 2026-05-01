@@ -5,7 +5,13 @@ const PAGE_SIZE = 50
 const LOAD_MORE_TOP_PX = 100
 
 function isSessionAccessDenied(err) {
-  return err?.code === 'SESSION_ACCESS_DENIED' || err?.status === 401
+  return Boolean(
+    err?.code === 'SESSION_ACCESS_DENIED' ||
+    err?.code === 'VALIDATION_ERROR' ||
+    err?.status === 401 ||
+    err?.status === 403 ||
+    err?.status === 404
+  )
 }
 
 function parseClientId(metadata) {

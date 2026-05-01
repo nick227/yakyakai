@@ -39,6 +39,17 @@ export function useOutputs(riverRef, onScrollToBottom) {
       case EventTypes.PLAN:
         console.log('[sse] Plan received:', (ev.payload?.steps ?? ev.payload?.prompts)?.length, 'steps')
         setPlan(ev.payload)
+        setChatMessages((prev) => {
+          const steps = ev.payload?.steps ?? ev.payload?.prompts ?? []
+          return [...prev, {
+            id: `plan-${ev.ts || Date.now()}`,
+            clientId: `plan-${ev.ts || Date.now()}`,
+            role: 'ASSISTANT',
+            content: '',
+            createdAt: new Date().toISOString(),
+            metadata: JSON.stringify({ isPlan: true, steps }),
+          }]
+        })
         break
       case EventTypes.OUTPUT:
         console.log('[sse] Output received for index:', ev.payload?.index)

@@ -69,7 +69,6 @@ const ChatStream = memo(function ChatStream({ outputs, chatMessages, plan, statu
         <EmptyChatState />
       ) : (
         <div className="chat-stream">
-          {plan && <PlanCard plan={plan} />}
           {showHydratorSmoke && (
             <ChatMessage key={HYDRATOR_SMOKE_MESSAGE.id} msg={HYDRATOR_SMOKE_MESSAGE} index={0} />
           )}
@@ -185,17 +184,14 @@ function SessionNotFoundState({ onNewChat }) {
 
 const ChatMessage = memo(function ChatMessage({ msg, index }) {
   const isUser = msg.role === 'USER'
-  const metadata = parseMetadataSafe(msg.metadata)
-  const isNotice = metadata.isNotice
-  const isFastIntro = metadata.isFastIntro
-  const isMedia = metadata.isMedia
+  const { isNotice, isFastIntro, isPlan, isMedia, steps } = parseMetadataSafe(msg.metadata)
   const messageBodyRef = useRef(null)
 
   useEffect(() => {
-    if (messageBodyRef.current && !isUser && !isNotice && !isFastIntro) {
+    if (messageBodyRef.current && !isUser && !isNotice && !isFastIntro && !isPlan) {
       hydrateChatContent(messageBodyRef.current)
     }
-  }, [msg.content, isUser, isNotice, isFastIntro])
+  }, [msg.content, isUser, isNotice, isFastIntro, isPlan])
 
   if (isUser) {
     return (
@@ -205,6 +201,10 @@ const ChatMessage = memo(function ChatMessage({ msg, index }) {
         </div>
       </article>
     )
+  }
+
+  if (isPlan) {
+    return <PlanCard plan={{ steps }} />
   }
 
   if (isFastIntro) {

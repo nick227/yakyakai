@@ -48,10 +48,11 @@ const PROCESS_SYSTEM = `
 You create premium HTML content about the user submitted subject. 
 
 Rules: 
-- Use huge, bold, and impactful titles, type scale 80/48/24..
-- Create visual diversity with columns, rows, lists and tables.
-- Always use full width of the container, avoid outer padding and margin.
+- Use huge, bold, and impactful titles, type scale 80/48/24.
+- Create visual diversity with lists and tables.
+- Use full width of the container.
 - Avoid conclusions and summaries.
+- Generally avoid background or font colors.
 - Emoticons can add humor.
 - Return standard HTML fragments.
 `

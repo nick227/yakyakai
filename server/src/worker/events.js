@@ -4,7 +4,7 @@ import { EventTypes } from '../lib/eventTypes.js'
 
 export async function publish(sessionId, type, payload = {}) {
   const event = { type, payload, ts: Date.now() }
-  logger.info('[events] Publishing to database', { type, sessionId, payload })
+
   await prisma.aiSessionEvent.create({
     data: {
       sessionId,
@@ -12,7 +12,7 @@ export async function publish(sessionId, type, payload = {}) {
       payload: JSON.stringify(event),
     }
   })
-  logger.info('[events] Published event to database successfully', { type, sessionId })
+
 }
 
 export async function publishNotice(sessionId, message) {

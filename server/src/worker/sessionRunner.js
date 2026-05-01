@@ -117,13 +117,15 @@ export async function runSessionCycle(ctx) {
     ? ctx.previousPrompt
     : (ctx.currentPrompt || ctx.session.currentPrompt || ctx.session.originalPrompt)
 
-  await insertMediaForCycle({
-    sessionId: ctx.sessionId,
-    cycle: cycleNumber,
-    prompt: planningPrompt,
-    publish: ctx.publish,
-    kind: 'video'
-  })
+  if (ctx.cycle === 0) {
+    await insertMediaForCycle({
+      sessionId: ctx.sessionId,
+      cycle: cycleNumber,
+      prompt: planningPrompt,
+      publish: ctx.publish,
+      kind: 'video'
+    })
+  }
   // await insertMediaForCycle({ sessionId: ctx.sessionId, cycle: cycleNumber, prompt: planningPrompt, publish: ctx.publish, kind: 'image' })
   // await insertMediaForCycle({ sessionId: ctx.sessionId, cycle: cycleNumber, prompt: planningPrompt, publish: ctx.publish, kind: 'giphy' })
 

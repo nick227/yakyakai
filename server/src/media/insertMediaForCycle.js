@@ -1,6 +1,8 @@
 import { prisma } from '../db/prisma.js'
 import { EventTypes } from '../lib/eventTypes.js'
 
+const youtubeCache = new Map()
+
 function buildQuery(prompt, kind) {
   const words = String(prompt || '').trim().split(/\s+/).filter(Boolean)
   const shuffled = words.sort(() => Math.random() - 0.5)
@@ -30,23 +32,32 @@ async function fetchUnsplashImage(query) {
 }
 
 async function fetchYouTubeVideo(query) {
+  if (youtubeCache.has(query)) {
+    console.log('[media] YouTube cache hit', { query })
+    return { videoId: youtubeCache.get(query) }
+  }
+
   const apiKey = process.env.YOUTUBE_API_KEY
   if (!apiKey) throw new Error('Missing env: YOUTUBE_API_KEY')
 
   const url = new URL('https://www.googleapis.com/youtube/v3/search')
   url.searchParams.set('part', 'snippet')
   url.searchParams.set('type', 'video')
-  url.searchParams.set('maxResults', '5')
+  url.searchParams.set('maxResults', '1')
   url.searchParams.set('q', query)
   url.searchParams.set('key', apiKey)
 
   const res = await fetch(url)
-  if (!res.ok) throw new Error(`YouTube search failed: ${res.status}`)
+  if (!res.ok) {
+    const errorBody = await res.text()
+    throw new Error(`YouTube search failed: ${res.status} - ${errorBody}`)
+  }
   const data = await res.json()
   const items = data?.items?.filter((i) => i?.id?.videoId) || []
   if (!items.length) throw new Error('YouTube returned no videoId')
-  const pick = items[Math.floor(Math.random() * items.length)]
-  return { videoId: pick.id.videoId }
+  const videoId = items[0].id.videoId
+  youtubeCache.set(query, videoId)
+  return { videoId }
 }
 
 async function fetchGiphy(query) {

@@ -43,27 +43,18 @@ export async function runSessionCycle(ctx) {
     ? ctx.previousPrompt
     : (ctx.currentPrompt || ctx.session.currentPrompt || ctx.session.originalPrompt)
 
-  // ── Pre-planning content sources (fire-and-forget, run concurrently with planning) ──
-  if (ctx.cycle === 0) {
-    void insertCycleMedia(ctx.sessionId, cycleNumber, contentPrompt, ctx.publish, 'video')
-    // Add additional top-of-session third-party sources here
-  }
-
   // Phase 1: Planning
   ctx.phase = PHASE.PLANNING
   ctx = await runPlanningOrchestration(ctx)
+
+  // Step 0: Media (fire-and-forget, alternates video/image each cycle)
+  void insertCycleMedia(ctx.sessionId, cycleNumber, contentPrompt, ctx.publish, ctx.cycle % 2 === 0 ? 'video' : 'image')
 
   // Phase 2: Execution
   ctx.phase = PHASE.EXECUTION
   ctx = await runExecutionPhase(ctx)
 
   if (ctx.outputs.paused || ctx.outputs.stopped) return ctx
-
-  // ── Post-execution content sources (awaited, render after AI content) ──
-  if (ctx.cycle === 0) {
-    await insertCycleMedia(ctx.sessionId, cycleNumber, contentPrompt, ctx.publish, 'image')
-    // Add additional bottom-of-session third-party sources here
-  }
 
   // Phase 3: Evolution
   ctx.phase = PHASE.EVOLUTION

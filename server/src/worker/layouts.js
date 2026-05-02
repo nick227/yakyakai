@@ -9,17 +9,17 @@ const styleMap     = Object.fromEntries(STYLES.map((s) => [s.key, s.prompt]))
 export const INSTRUCTIONS = [
   { key: 'fast-short',                   blueprint: 'fast-massive',          style: 'none'    },
 
-  { key: 'evidence-callout-technical',   blueprint: 'evidence-callout',    style: 'technical' },
-
-  { key: 'hero-punchy',                  blueprint: 'hero',                style: 'punchy'    },
+  { key: 'hero-punchy',                  blueprint: 'hero',                style: 'diverse'    },
   
   { key: 'split-hero-cinematic',         blueprint: 'split-hero',          style: 'cinematic' },
+
+  { key: 'evidence-callout-technical',   blueprint: 'evidence-callout',    style: 'technical' },
   
-  { key: 'grid-dense',                   blueprint: 'grid',                style: 'dense'     },
+  { key: 'grid-dense',                   blueprint: 'grid',                style: 'diverse'     },
 
   { key: 'chart-table',                  blueprint: 'grid',                chart: 'table'     },
 
-  { key: 'evidence-callout-technical',   blueprint: 'evidence-callout',    style: 'technical' },
+  { key: 'evidence-callout-technical',   blueprint: 'evidence-callout',    style: 'diverse' },
   
   { key: 'chart-playbook',               chart: 'playbook'                                    },
   
@@ -27,7 +27,7 @@ export const INSTRUCTIONS = [
   
   { key: 'chart-pie',                    chart: 'pie'                                         },
 
-  { key: 'evidence-callout-technical',   blueprint: 'evidence-callout',    style: 'technical' },
+  { key: 'evidence-callout-technical',   blueprint: 'evidence-callout',    style: 'diverse' },
   
   { key: 'center-focus-minimal',         blueprint: 'center-focus',        style: 'minimal'   },
   

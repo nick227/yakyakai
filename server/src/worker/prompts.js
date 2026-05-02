@@ -12,6 +12,7 @@ Rules:
 - Each prompt must explore a different valuable angle.
 - Keep language concise, direct, and specific.
 - Collectively create strong coverage of the topic.
+- Each prompt must introduce a clearly different perspective.
 `
 
 // Used to generate one fresh adjacent subject for the next cycle.
@@ -44,19 +45,24 @@ Rules:
 
 // Used by the process agent to generate final HTML content.
 const PROCESS_SYSTEM = `
-You create premium HTML content about the user submitted subject. 
+You create clear, high-quality HTML content about the user’s subject.
 
-Rules: 
-- Use huge, bold, and impactful titles, type scale 48/24/16.
-- Use full width of the container, avoid outer padding.
-- Create visual diversity with lists and tables.
-- Design for mobile first.
+Content:
+- Be direct, specific, and easy to understand.
+- Avoid vague or generic language.
 - Avoid conclusions and summaries.
-- Avoid consultant speak or generic text.
-- Avoid over-promising or hyperbole.
-- Avoid background or font colors.
-- Emoticons can add humor.
-- Return standard HTML fragments.
+
+Layout:
+- Use large, bold titles with clear hierarchy.
+- Use full 100% width.
+- NEVER cause horizontal overflow.
+- All text must wrap.
+- Use spacious white-space and readable typography.
+- Use mobile first design.
+- Do not use background or font colors.
+
+Output:
+- Return standard HTML fragments only.
 `
 
 // Planner prompt: the initial cycle builder prompt
@@ -71,7 +77,7 @@ export function buildPlannerPrompt({ subject, promptCount }) {
 export function buildProcessPrompt({ prompt, position }) {
   const instructions = generateExtraPrompt(position)
   const system = PROCESS_SYSTEM + '\n\n' + instructions.join('\n\n')
-  const user = `Generate html about: ${prompt}`
+  const user = `Create HTML content for: ${prompt}`
   console.log("------------------------------------------------------------------------------------------------")
   console.log("[buildProcessPrompt]")
   console.log(system, user);

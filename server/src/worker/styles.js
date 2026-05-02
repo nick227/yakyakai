@@ -6,6 +6,11 @@ export const STYLES = [
   },
 
   {
+    key: 'diverse',
+    prompt: 'Create visual diversity with lists, paragraphs, headings, subheadings and tables.',
+  },
+
+  {
     key: 'editorial',
     prompt: 'Style: Generous whitespace, measured type scale, clean section breaks. Write with authority and precision — no filler, no hedging.',
   },

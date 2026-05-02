@@ -1,13 +1,19 @@
 export const BLUEPRINTS = [
 
   {
-    key: 'fast-massive',
+    key: 'big-font',
     prompt: 'One MASSIVE font statement that fills the container with extra large title! 100px+ font size massive wrapping short phrase.',
   },
 
   {
     key: 'fast-short',
     prompt: 'One simple, direct sentence only!',
+  },
+
+
+  {
+    key: 'free-form',
+    prompt: 'Create visual diversity with lists and tables.',
   },
 
   {

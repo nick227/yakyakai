@@ -1,21 +1,26 @@
 export const CHART_TYPES_PROMPTS = [
 
     // BAR comparison
-    'Use Frappe Charts to create a full-width bar chart <div class="yk-chart"> comparing three key point with real data. Do not invent data, only use sources from the web.',
-  
+    `Add a bar chart with real values drawn from the subject — no script tags:
+<div class="yk-chart" data-type="bar" data-labels='["A","B","C"]' data-values='[10,20,30]'></div>`,
+
     // LINE trend
-    'Use Frappe Charts to create a full-width line chart <div class="yk-chart"> comparing three key point with real data. Do not invent data, only use sources from the web.',
-  
+    `Add a line chart with real values drawn from the subject — no script tags:
+<div class="yk-chart" data-type="line" data-labels='["A","B","C"]' data-values='[10,20,30]'></div>`,
+
     // PIE composition
-    'Use Frappe Charts to create a full-width pie chart <div class="yk-chart"> comparing three key point with real data. Do not invent data, only use sources from the web.',
-  
+    `Add a pie chart with real values drawn from the subject — no script tags:
+<div class="yk-chart" data-type="pie" data-labels='["A","B","C"]' data-values='[40,35,25]'></div>`,
+
     // MERMAID process
-    'Use Mermaid to create a flow diagram using <div class="yk-mermaid">. Never use bare quoted strings as node IDs. Connect nodes logically. Do not invent data, only use sources from the web.',
-  
+    `Add a flow diagram with real steps drawn from the subject. Use node IDs, not bare quoted strings:
+<div class="yk-mermaid">graph LR; A[Step] --> B[Step] --> C[Step]</div>`,
+
     // TABLE structured info
-    'Create a clean table with sufficient rows and columns showing structured information about the subject. Use real categories and meaningful values. Avoid placeholders like "Item 1". Ensure each row adds distinct value no repetition. Do not invent data, only use sources from the web.',
-  
+    'Add a table with real data drawn from the subject. Use meaningful column headers and distinct row values — no placeholder text.',
+
     // TYPED headline
-    'Use Typed.js to create a bold hero headline using <div class="yk-typed"> that displays a single compelling statement about the subject.',
-  
+    `Add a Typed.js headline with one compelling statement about the subject — no script tags:
+<div class="yk-typed" data-strings='["Statement about the subject."]'></div>`,
+
   ]

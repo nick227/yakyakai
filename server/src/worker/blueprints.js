@@ -1,6 +1,11 @@
 export const BLUEPRINTS = [
 
   {
+    key: 'fast-massive',
+    prompt: 'One MASSIVE font statement use full screen text, try to fill the entire screen with this single comically large title! 200px+ font size massive wrapping short phrase.',
+  },
+
+  {
     key: 'fast-short',
     prompt: 'One simple, direct sentence only!',
   },

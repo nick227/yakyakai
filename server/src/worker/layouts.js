@@ -7,7 +7,7 @@ const chartMap     = Object.fromEntries(CHARTS.map((c) => [c.key, c.prompt]))
 const styleMap     = Object.fromEntries(STYLES.map((s) => [s.key, s.prompt]))
 
 export const INSTRUCTIONS = [
-  { key: 'fast-short',                   blueprint: 'fast-short',          style: 'none'    },
+  { key: 'fast-short',                   blueprint: 'fast-massive',          style: 'none'    },
 
   { key: 'hero-punchy',                  blueprint: 'hero',                style: 'punchy'    },
   

@@ -71,6 +71,7 @@ export function buildPlannerPrompt({ subject, promptCount }) {
 export function buildProcessPrompt({ prompt, position }) {
   const instructions = generateExtraPrompt(position)
   const system = PROCESS_SYSTEM + '\n\n' + instructions.join('\n\n')
+  const user = `Generate html about: ${prompt}`
   console.log("------------------------------------------------------------------------------------------------")
   console.log("[buildProcessPrompt]")
   console.log(system, user);

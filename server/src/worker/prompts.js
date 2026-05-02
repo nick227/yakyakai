@@ -1,5 +1,4 @@
-import { BLUEPRINT_STYLE_PROMPTS } from './blueprints.js'
-import { CHART_TYPES_PROMPTS } from './charts.js'
+import { getExtraInstructions } from './layouts.js'
 
 // Used for planner calls to generate strong downstream prompts.
 const PLANNER_SYSTEM = `
@@ -69,21 +68,22 @@ export function buildPlannerPrompt({ subject, promptCount }) {
 // Process prompt: the internal cycle handling prompt
 export function buildProcessPrompt({ prompt, position }) {
   const instructions = generateExtraPrompt(position)
+  const system = PROCESS_SYSTEM + '\n\n' + instructions.join('\n\n')
+  const user = `Generate html about: ${prompt}`
+  console.log("------------")
+  console.log("[buildProcessPrompt]")
+  console.log(system, user);
+  console.log("------------")
   return {
-    system: PROCESS_SYSTEM + '\n\n' + instructions.join('\n\n'),
-    user: `Generate html about: ${prompt}`
+    system,
+    user
   };
 }
 
 // Extra prompt: generates extra instructions for process prompt
 function generateExtraPrompt(position) {
-  if(position === 0) {
-    return [];
-  }
-  let chart = position % 3 === 0 ? CHART_TYPES_PROMPTS[Math.floor(Math.random() * CHART_TYPES_PROMPTS.length)] : '';
-  const blueprint = position % 3 === 0 ? BLUEPRINT_STYLE_PROMPTS[Math.floor(Math.random() * BLUEPRINT_STYLE_PROMPTS.length)] : '';
-
-  return [chart, blueprint]
+  if (position === 0) return []
+  return getExtraInstructions(position)
 }
 
 // Builds adjacent-topic payload.

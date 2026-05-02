@@ -45,7 +45,7 @@ export async function runSessionCycle(ctx) {
 
   // ── Pre-planning content sources (fire-and-forget, run concurrently with planning) ──
   if (ctx.cycle === 0) {
-    insertCycleMedia(ctx.sessionId, cycleNumber, contentPrompt, ctx.publish, 'video').catch(() => {})
+    void insertCycleMedia(ctx.sessionId, cycleNumber, contentPrompt, ctx.publish, 'video')
     // Add additional top-of-session third-party sources here
   }
 

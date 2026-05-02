@@ -8,7 +8,6 @@ import { EventTypes } from '../lib/eventTypes.js'
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const STEP_PARALLELISM = Math.max(1, Number(process.env.STEP_PARALLELISM || 2))
-const FIXED_STEP_COUNT = Math.max(1, Number(process.env.FIXED_STEP_COUNT || 0))
 
 function isStepTimeout(error) {
   return error?.code === 'STEP_TIMEOUT' || error?.message === 'STEP_TIMEOUT'
@@ -93,16 +92,7 @@ export async function runPlanCycle({
   if (plannerPromise) {
     const planned = await plannerPromise
     if (planned?.steps?.length) {
-      if (FIXED_STEP_COUNT > 0) {
-        const trimmed = planned.steps.slice(0, FIXED_STEP_COUNT)
-        const fallbackInput = trimmed[0]?.input || plan.steps?.[0]?.input || session?.originalPrompt || ''
-        while (trimmed.length < FIXED_STEP_COUNT) {
-          trimmed.push({ input: fallbackInput })
-        }
-        steps = trimmed
-      } else {
-        steps = planned.steps
-      }
+      steps = planned.steps
     }
   }
 

@@ -13,6 +13,8 @@
   font-size: var(--text-2xl);
   line-height: var(--line-tight);
   letter-spacing: -0.045em;
+  animation: yakyakai-fade-in 4000ms var(--ease-standard) forwards;
+  animation-delay: 500ms;
 }
 
 .page-yakyakai .hero-copy {
@@ -21,41 +23,6 @@
   color: var(--color-text-muted);
   font-size: var(--text-md);
   line-height: var(--line-relaxed);
-}
-
-/* ── Topbar ─────────────────────────────────────────────── */
-
-.page-yakyakai .topbar-actions {
-  justify-content: flex-end;
-  min-width: 0;
-}
-
-.page-yakyakai .status-pill {
-  max-width: 200px;
-  height: var(--control-h);
-}
-
-/* ── Auth page ──────────────────────────────────────────── */
-
-.page-yakyakai .auth-page {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.page-yakyakai .auth-panel {
-  width: min(100%, 420px);
-  margin-inline: auto;
-}
-
-@media (min-width: 860px) {
-  .page-yakyakai .auth-page {
-    grid-template-columns: minmax(0, 1fr) 420px;
-    align-items: center;
-  }
-
-  .page-yakyakai .auth-page .empty-state {
-    justify-items: start;
-    text-align: left;
-  }
 }
 
 /* ── Empty / splash states ──────────────────────────────── */
@@ -73,6 +40,18 @@
   max-width: 680px;
   margin-inline: auto;
   padding-inline: var(--space-4);
+  opacity: 0;
+  animation: yakyakai-fade-in 4000ms var(--ease-standard) forwards;
+  animation-delay: 800ms;
+}
+
+@keyframes yakyakai-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .page-yakyakai .chat-loading {
@@ -187,6 +166,43 @@
 @keyframes pulse-mark {
   0%, 100% { opacity: 1; transform: scale(1); }
   50%       { opacity: 0.6; transform: scale(0.93); }
+}
+
+/* ── Topbar ─────────────────────────────────────────────── */
+
+.page-yakyakai .topbar-actions {
+  justify-content: flex-end;
+  min-width: 0;
+  animation: yakyakai-fade-in 4000ms var(--ease-standard) forwards;
+  animation-delay: 500ms;
+}
+
+.page-yakyakai .status-pill {
+  max-width: 200px;
+  height: var(--control-h);
+}
+
+/* ── Auth page ──────────────────────────────────────────── */
+
+.page-yakyakai .auth-page {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.page-yakyakai .auth-panel {
+  width: min(100%, 420px);
+  margin-inline: auto;
+}
+
+@media (min-width: 860px) {
+  .page-yakyakai .auth-page {
+    grid-template-columns: minmax(0, 1fr) 420px;
+    align-items: center;
+  }
+
+  .page-yakyakai .auth-page .empty-state {
+    justify-items: start;
+    text-align: left;
+  }
 }
 
 /* ── Chat messages with avatar ──────────────────────────── */

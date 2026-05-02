@@ -62,18 +62,7 @@ const AppFrame = memo(function AppFrame({
           </div>
 
           <div className="flex items-center gap-2 topbar-actions">
-            {onCopyLink && (
-              <button
-                className="icon-button"
-                type="button"
-                onClick={handleCopyLink}
-                title="Copy link"
-                aria-label="Copy link to this session"
-              >
-                <Link size={15} />
-              </button>
-            )}
-
+            
             <span className="pill status-pill">
               <span className={live ? 'pill-dot is-live' : 'pill-dot'} />
               {STATUS_LABELS[status] || status}

@@ -6,12 +6,14 @@ import { paceMs } from '../../lib/pace.js'
 import { MAX_CYCLES } from '../constants.js'
 import { completeSession, updateSessionCycleCount } from './sessionState.js'
 import { getSessionStatus } from './sessionContext.js'
+import { releaseSession } from '../layouts.js'
 
 function shouldEnqueueNextCycle(ctx) {
   return ctx.cycle < MAX_CYCLES
 }
 
 async function handleCycleCompletion(ctx) {
+  releaseSession(ctx.sessionId)
   await completeSession(ctx.sessionId, ctx.cycle, ctx.publish)
   return ctx
 }
@@ -25,6 +27,7 @@ async function handlePausedSession(ctx, afterSession) {
 }
 
 async function handleCancelledSession(ctx) {
+  releaseSession(ctx.sessionId)
   await ctx.publish(ctx.sessionId, EventTypes.STATUS, { status: 'stopped' })
   bus.cleanup(ctx.sessionId)
   return ctx

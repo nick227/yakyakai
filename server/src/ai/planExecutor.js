@@ -20,6 +20,7 @@ export async function executePlanStep({
   sessionId,
   job,
   cycle,
+  stepOffset,
   step,
   index,
   totalSteps,
@@ -31,7 +32,7 @@ export async function executePlanStep({
 
   const promptText = buildProcessPrompt({
     prompt: step.input,
-    position: cycle * 100 + index
+    position: stepOffset + index
   })
   const signal = beginSessionAiCall(sessionId)
   let outputResult

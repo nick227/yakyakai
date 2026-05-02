@@ -1,6 +1,11 @@
 export const BLUEPRINTS = [
 
   {
+    key: 'fast-short',
+    prompt: 'One simple, direct sentence only!',
+  },
+
+  {
     key: 'hero',
     prompt: 'One headline naming a specific non-obvious truth about the subject. One paragraph of 3–4 sentences. No other elements.',
   },

@@ -48,11 +48,13 @@ You create premium HTML content about the user submitted subject.
 
 Rules: 
 - Use huge, bold, and impactful titles, type scale 48/24/16.
-- Create visual diversity with lists and tables.
 - Use full width of the container, avoid outer padding.
+- Create visual diversity with lists and tables.
 - Design for mobile first.
 - Avoid conclusions and summaries.
-- Generally avoid background or font colors.
+- Avoid consultant speak or generic text.
+- Avoid over-promising or hyperbole.
+- Avoid background or font colors.
 - Emoticons can add humor.
 - Return standard HTML fragments.
 `
@@ -69,11 +71,10 @@ export function buildPlannerPrompt({ subject, promptCount }) {
 export function buildProcessPrompt({ prompt, position }) {
   const instructions = generateExtraPrompt(position)
   const system = PROCESS_SYSTEM + '\n\n' + instructions.join('\n\n')
-  const user = `Generate html about: ${prompt}`
-  console.log("------------")
+  console.log("------------------------------------------------------------------------------------------------")
   console.log("[buildProcessPrompt]")
   console.log(system, user);
-  console.log("------------")
+  console.log("------------------------------------------------------------------------------------------------")
   return {
     system,
     user
@@ -82,7 +83,6 @@ export function buildProcessPrompt({ prompt, position }) {
 
 // Extra prompt: generates extra instructions for process prompt
 function generateExtraPrompt(position) {
-  if (position === 0) return []
   return getExtraInstructions(position)
 }
 

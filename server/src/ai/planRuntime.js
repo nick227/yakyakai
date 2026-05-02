@@ -5,6 +5,7 @@ import { getEffectivePlanStepDelayMs } from './planStepDelay.js'
 import { logger } from '../lib/logger.js'
 import { emitMetric } from '../lib/metrics.js'
 import { EventTypes } from '../lib/eventTypes.js'
+import { claimStepRange } from '../worker/layouts.js'
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const STEP_PARALLELISM = Math.max(1, Number(process.env.STEP_PARALLELISM || 2))
@@ -99,6 +100,8 @@ export async function runPlanCycle({
   const totalSteps = steps.length
   if (totalSteps === 0) return { stopped: false, paused: false }
 
+  const stepOffset = claimStepRange(sessionId, totalSteps)
+
   const orderedOutput = createOrderedOutputPublisher(publish, {
     sessionId,
     jobId: job?.id,
@@ -133,6 +136,7 @@ export async function runPlanCycle({
           sessionId,
           job,
           cycle: currentCycle,
+          stepOffset,
           step: steps[index],
           index,
           totalSteps,

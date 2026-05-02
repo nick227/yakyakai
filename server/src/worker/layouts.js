@@ -7,50 +7,54 @@ const chartMap     = Object.fromEntries(CHARTS.map((c) => [c.key, c.prompt]))
 const styleMap     = Object.fromEntries(STYLES.map((s) => [s.key, s.prompt]))
 
 export const INSTRUCTIONS = [
+  { key: 'fast-short',                   blueprint: 'fast-short',          style: 'none'    },
+
   { key: 'hero-punchy',                  blueprint: 'hero',                style: 'punchy'    },
-  { key: 'default',                      blueprint: 'none',                style: 'none'      },
+  
   { key: 'split-hero-cinematic',         blueprint: 'split-hero',          style: 'cinematic' },
-  { key: 'default',                      blueprint: 'none',                style: 'none'      },
-  { key: 'chart-timeline',               chart: 'timeline'                                    },
-  { key: 'default',                      blueprint: 'none',                style: 'none'      },
+  
   { key: 'grid-dense',                   blueprint: 'grid',                style: 'dense'     },
-  { key: 'default',                      blueprint: 'none',                style: 'none'      },
+
+  { key: 'chart-table',                  blueprint: 'grid',                chart: 'table'     },
+  
   { key: 'chart-playbook',               chart: 'playbook'                                    },
-  { key: 'default',                      blueprint: 'none',                style: 'none'      },
+  
   { key: 'stack-contrast-editorial',     blueprint: 'stack-contrast',      style: 'editorial' },
-  { key: 'default',                      blueprint: 'none',                style: 'none'      },
+  
   { key: 'chart-pie',                    chart: 'pie'                                         },
-  { key: 'default',                      blueprint: 'none',                style: 'none'      },
+  
   { key: 'center-focus-minimal',         blueprint: 'center-focus',        style: 'minimal'   },
-  { key: 'default',                      blueprint: 'none',                style: 'none'      },
+  
   { key: 'chart-big-stats',              chart: 'big-stats'                                   },
-  { key: 'default',                      blueprint: 'none',                style: 'none'      },
-  { key: 'chart-bar',                    chart: 'bar'                                         },
-  { key: 'default',                      blueprint: 'none',                style: 'none'      },
+  
+  { key: 'chart-timeline',               chart: 'timeline'                                    },
+  
   { key: 'top-heavy-brutalist',          blueprint: 'top-heavy',           style: 'brutalist' },
-  { key: 'default',                      blueprint: 'none',                style: 'none'      },
+  
   { key: 'chart-line',                   chart: 'line'                                        },
-  { key: 'default',                      blueprint: 'none',                style: 'none'      },
+  
   { key: 'bottom-heavy-academic',        blueprint: 'bottom-heavy',        style: 'academic'  },
-  { key: 'default',                      blueprint: 'none',                style: 'none'      },
+  
   { key: 'chart-mermaid',                chart: 'mermaid'                                     },
-  { key: 'default',                      blueprint: 'none',                style: 'none'      },
+  
   { key: 'alternating-viral',            blueprint: 'alternating',         style: 'viral'     },
-  { key: 'default',                      blueprint: 'none',                style: 'none'      },
+  
   { key: 'chart-tier-list',              chart: 'tier-list'                                   },
-  { key: 'default',                      blueprint: 'none',                style: 'none'      },
+  
   { key: 'fragmented-brutalist',         blueprint: 'fragmented',          style: 'brutalist' },
-  { key: 'default',                      blueprint: 'none',                style: 'none'      },
+  
   { key: 'chart-table',                  chart: 'table'                                       },
-  { key: 'default',                      blueprint: 'none',                style: 'none'      },
+  
   { key: 'two-speed-warm',               blueprint: 'two-speed',           style: 'warm'      },
-  { key: 'default',                      blueprint: 'none',                style: 'none'      },
+  
   { key: 'cluster-dense',                blueprint: 'cluster',             style: 'dense'     },
-  { key: 'default',                      blueprint: 'none',                style: 'none'      },
+
+  { key: 'chart-bar',                    chart: 'bar'                                         },
+  
   { key: 'edge-anchored-editorial',      blueprint: 'edge-anchored',       style: 'editorial' },
-  { key: 'default',                      blueprint: 'none',                style: 'none'      },
+  
   { key: 'interruption-viral',           blueprint: 'interruption',        style: 'viral'     },
-  { key: 'default',                      blueprint: 'none',                style: 'none'      },
+  
   { key: 'progressive-density-academic', blueprint: 'progressive-density', style: 'academic'  },
 ]
 
@@ -63,4 +67,18 @@ export function getExtraInstructions(position) {
     resolve(chartMap,     instruction.chart),
     resolve(styleMap,     instruction.style),
   ].filter(Boolean)
+}
+
+// Per-session step pointer — walks INSTRUCTIONS sequentially across all cycles.
+// Resets on process restart (acceptable: minor aesthetic effect, avoids DB schema change).
+const sessionPointers = new Map()
+
+export function claimStepRange(sessionId, count) {
+  const offset = sessionPointers.get(sessionId) ?? 0
+  sessionPointers.set(sessionId, offset + count)
+  return offset
+}
+
+export function releaseSession(sessionId) {
+  sessionPointers.delete(sessionId)
 }

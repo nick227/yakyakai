@@ -10,12 +10,13 @@
     "build": "npm run build --prefix client && npm run prisma:generate --prefix server",
     "start": "npm run dev",
     "start:prod": "concurrently \"npm run start --prefix server\" \"npm run worker --prefix server\"",
-    "dev": "concurrently \"npm run dev --prefix server\" \"npm run worker:dev --prefix server\" \"npm run dev --prefix client\"",
+    "dev": "concurrently \"npm run dev --prefix server\" \"npm run worker:dev --prefix server\" \"wait-on tcp:127.0.0.1:3001 && npm run dev --prefix client\"",
     "db:push": "npm run db:push --prefix server",
     "db:migrate": "npm run db:migrate --prefix server",
     "db:deploy": "npm run db:deploy --prefix server"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "concurrently": "^9.1.2",
+    "wait-on": "^8.0.1"
   }
 }

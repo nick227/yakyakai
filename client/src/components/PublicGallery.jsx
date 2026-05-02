@@ -3,6 +3,9 @@ import { Globe, ChevronRight } from 'lucide-react'
 import { api } from '../api/client.js'
 import { RUN_STATUS } from '../lib/uiConstants.js'
 
+/** Matches GET /api/public/sessions: newest first (updatedAt desc, id desc). */
+const PAGE_SIZE = 10
+
 function relativeTime(dateStr) {
   const diff = Date.now() - new Date(dateStr).getTime()
   const mins = Math.floor(diff / 60_000)
@@ -34,16 +37,21 @@ export default function PublicGallery({ onNavigate }) {
   const [loadingMore, setLoadingMore] = useState(false)
   const [nextCursor, setNextCursor] = useState(null)
   const listRef = useRef(null)
+  /** Keeps pagination cursor out of `load` deps so mount effect does not reset the list when cursor updates. */
+  const nextCursorRef = useRef(null)
 
   const load = useCallback(async ({ reset = false } = {}) => {
     if (reset) setLoading(true)
     else setLoadingMore(true)
     try {
-      const res = await api.listPublicSessions(20, reset ? null : nextCursor)
-      console.log('[PublicGallery] API response:', res)
+      if (reset) nextCursorRef.current = null
+      const cursor = reset ? null : nextCursorRef.current
+      const res = await api.listPublicSessions(PAGE_SIZE, cursor)
       const items = res.sessions || []
+      const next = res.nextCursor || null
+      nextCursorRef.current = next
       setSessions((prev) => (reset ? items : [...prev, ...items]))
-      setNextCursor(res.nextCursor || null)
+      setNextCursor(next)
     } catch (err) {
       console.error('[PublicGallery] Failed to load sessions:', err)
       // silent — gallery is non-critical
@@ -51,20 +59,20 @@ export default function PublicGallery({ onNavigate }) {
       if (reset) setLoading(false)
       else setLoadingMore(false)
     }
-  }, [nextCursor])
+  }, [])
 
   useEffect(() => {
     load({ reset: true })
   }, [load])
 
   const handleListScroll = useCallback(() => {
-    if (!listRef.current || loading || loadingMore || !nextCursor) return
+    if (!listRef.current || loading || loadingMore || !nextCursorRef.current) return
     const el = listRef.current
     const distanceToBottom = el.scrollHeight - el.scrollTop - el.clientHeight
-    if (distanceToBottom < 100) {
+    if (distanceToBottom < 120) {
       load({ reset: false })
     }
-  }, [loading, loadingMore, nextCursor, load])
+  }, [loading, loadingMore, load])
 
   return (
     <div className="profile-page">

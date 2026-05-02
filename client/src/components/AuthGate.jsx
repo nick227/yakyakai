@@ -128,9 +128,9 @@ export default function AuthGate({ onAuth }) {
       <main className="center-page auth-page">
         <section className="empty-state">
           <div className="hero-eyebrow">Continuous AI sessions</div>
-          <h1 className="hero-title">Start a protected streaming workspace.</h1>
+          <h1 className="hero-title">Start a streaming AI conversation.</h1>
           <p className="hero-copy">
-            Sign in to plan, stream, pause, resume, and keep your run history attached to your account.
+            Prompt, stream, pause and resume the conversation.
           </p>
         </section>
 

@@ -24,7 +24,7 @@ function parseClientId(metadata) {
   }
 }
 
-export function useMessages(sessionId, riverRef, onSessionAccessDenied) {
+export function useMessages(sessionId, riverRef, onSessionAccessDenied, initialScrollOverrideRef) {
   const [chatMessages, setChatMessages] = useState([])
   const [hasMoreMessages, setHasMoreMessages] = useState(false)
   const [isLoadingMessages, setIsLoadingMessages] = useState(false)
@@ -45,7 +45,9 @@ export function useMessages(sessionId, riverRef, onSessionAccessDenied) {
         previousTop: river.scrollTop,
       }
     } else {
-      pendingScrollRef.current = { type: 'bottom' }
+      const override = initialScrollOverrideRef?.current
+      if (override) initialScrollOverrideRef.current = null
+      pendingScrollRef.current = { type: override || 'bottom' }
     }
 
     try {
@@ -108,6 +110,8 @@ export function useMessages(sessionId, riverRef, onSessionAccessDenied) {
 
     if (action.type === 'prepend') {
       river.scrollTop = river.scrollHeight - action.previousHeight + action.previousTop
+    } else if (action.type === 'top') {
+      river.scrollTop = 0
     } else if (action.type === 'bottom') {
       river.scrollTop = river.scrollHeight
     } else if (action.type === 'live' && action.shouldStick) {

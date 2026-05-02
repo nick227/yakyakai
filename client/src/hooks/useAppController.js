@@ -20,6 +20,7 @@ export function useAppController() {
   const [pace, setPace] = useState(PACE.FAST)
   const riverRef = useRef(null)
   const pendingScrollRef = useRef(null)
+  const initialScrollOverrideRef = useRef(null)
 
   const updateUiState = useCallback((updates) => {
     setUiState((prev) => ({ ...prev, ...updates }))
@@ -28,7 +29,8 @@ export function useAppController() {
   const { chatMessages, hasMoreMessages, isLoadingMessages, handleScroll, setChatMessages } = useMessages(
     sessionId,
     riverRef,
-    clearStaleSession
+    clearStaleSession,
+    initialScrollOverrideRef
   )
 
   const { outputs, plan, handleSSEEvent, reset: resetOutputs } = useOutputs(
@@ -172,6 +174,7 @@ export function useAppController() {
   }, [sessionId, status, setStatus, setRunError])
 
   const navigateToSession = useCallback((id) => {
+    initialScrollOverrideRef.current = 'top'
     clearSessionState()
     navigateTo(id)
   }, [clearSessionState, navigateTo])

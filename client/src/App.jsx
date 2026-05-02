@@ -81,6 +81,8 @@ function App({ user, onLogout }) {
         onLogout={handleLogout}
         onSidebar={actions.openSidebar}
         onProfile={handleProfileClick}
+        onHome={actions.startNewChat}
+        onPublic={actions.navigateToPublic}
       >
         <SessionSidebar
           isOpen={state.uiState.showSidebar}
@@ -105,6 +107,8 @@ function App({ user, onLogout }) {
         onLogout={handleLogout}
         onSidebar={actions.openSidebar}
         onProfile={handleProfileClick}
+        onHome={actions.startNewChat}
+        onPublic={actions.navigateToPublic}
       >
         <SessionSidebar
           isOpen={state.uiState.showSidebar}
@@ -132,6 +136,8 @@ function App({ user, onLogout }) {
       onSidebar={actions.openSidebar}
       onProfile={handleProfileClick}
       onCopyLink={state.sessionId ? handleCopyLink : null}
+      onHome={actions.startNewChat}
+      onPublic={actions.navigateToPublic}
     >
       {showHydratorLibraryTest ? (
         <HydratorLibraryTest />

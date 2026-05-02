@@ -12,6 +12,8 @@ const AppFrame = memo(function AppFrame({
   onSidebar,
   onProfile,
   onCopyLink,
+  onHome,
+  onPublic,
 }) {
   const live = !TERMINAL_STATUSES.has(status) && status !== RUN_STATUS.PAUSED
 
@@ -26,26 +28,26 @@ const AppFrame = memo(function AppFrame({
         <div className="topbar-inner">
           <div className="brand-lockup">
             <div className="brand-copy">
-              <div className="brand-title"><a href="/">YakyakAI</a></div>
+              <div className="brand-title"><a href="/" onClick={(e) => { if (onHome) { e.preventDefault(); onHome() } }}>YakyakAI</a></div>
             </div>
             <button
               className="icon-button"
               type="button"
-              onClick={() => window.location.href = '/' }
+              onClick={() => onHome ? onHome() : window.location.href = '/'}
               title="Yakyakai.com"
               aria-label="Open home page"
             >
               <Bot size={15} />
             </button>
-              <button
-                className="icon-button"
-                type="button"
-                onClick={() => window.location.href = '/public' }
-                title="Public Sessions"
-                aria-label="Open session gallery"
-              >
-                <Home size={15} />
-              </button>
+            <button
+              className="icon-button"
+              type="button"
+              onClick={() => onPublic ? onPublic() : window.location.href = '/public'}
+              title="Public Sessions"
+              aria-label="Open session gallery"
+            >
+              <Home size={15} />
+            </button>
             {onSidebar && (
               <button
                 className="icon-button"

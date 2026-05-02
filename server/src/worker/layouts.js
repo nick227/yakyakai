@@ -9,6 +9,8 @@ const styleMap     = Object.fromEntries(STYLES.map((s) => [s.key, s.prompt]))
 export const INSTRUCTIONS = [
   { key: 'fast-short',                   blueprint: 'fast-massive',          style: 'none'    },
 
+  { key: 'evidence-callout-technical',   blueprint: 'evidence-callout',    style: 'technical' },
+
   { key: 'hero-punchy',                  blueprint: 'hero',                style: 'punchy'    },
   
   { key: 'split-hero-cinematic',         blueprint: 'split-hero',          style: 'cinematic' },
@@ -16,12 +18,16 @@ export const INSTRUCTIONS = [
   { key: 'grid-dense',                   blueprint: 'grid',                style: 'dense'     },
 
   { key: 'chart-table',                  blueprint: 'grid',                chart: 'table'     },
+
+  { key: 'evidence-callout-technical',   blueprint: 'evidence-callout',    style: 'technical' },
   
   { key: 'chart-playbook',               chart: 'playbook'                                    },
   
   { key: 'stack-contrast-editorial',     blueprint: 'stack-contrast',      style: 'editorial' },
   
   { key: 'chart-pie',                    chart: 'pie'                                         },
+
+  { key: 'evidence-callout-technical',   blueprint: 'evidence-callout',    style: 'technical' },
   
   { key: 'center-focus-minimal',         blueprint: 'center-focus',        style: 'minimal'   },
   
@@ -32,6 +38,8 @@ export const INSTRUCTIONS = [
   { key: 'top-heavy-brutalist',          blueprint: 'top-heavy',           style: 'brutalist' },
   
   { key: 'chart-line',                   chart: 'line'                                        },
+
+  { key: 'evidence-callout-technical',   blueprint: 'evidence-callout',    style: 'technical' },
   
   { key: 'bottom-heavy-academic',        blueprint: 'bottom-heavy',        style: 'academic'  },
   
@@ -40,16 +48,22 @@ export const INSTRUCTIONS = [
   { key: 'alternating-viral',            blueprint: 'alternating',         style: 'viral'     },
   
   { key: 'chart-tier-list',              chart: 'tier-list'                                   },
+
+  { key: 'evidence-callout-technical',   blueprint: 'evidence-callout',    style: 'technical' },
   
   { key: 'fragmented-brutalist',         blueprint: 'fragmented',          style: 'brutalist' },
   
   { key: 'chart-table',                  chart: 'table'                                       },
+
+  { key: 'evidence-callout-technical',   blueprint: 'evidence-callout',    style: 'technical' },
   
   { key: 'two-speed-warm',               blueprint: 'two-speed',           style: 'warm'      },
   
   { key: 'cluster-dense',                blueprint: 'cluster',             style: 'dense'     },
 
   { key: 'chart-bar',                    chart: 'bar'                                         },
+
+  { key: 'evidence-callout-technical',   blueprint: 'evidence-callout',    style: 'technical' },
   
   { key: 'edge-anchored-editorial',      blueprint: 'edge-anchored',       style: 'editorial' },
   

@@ -69,4 +69,9 @@ export const BLUEPRINTS = [
     prompt: 'Each section becomes more detailed or information-dense than the previous one.',
   },
 
+  {
+    key: 'evidence-callout',
+    prompt: 'Numbered section heading with a short subtitle. One sentence framing what to examine. A compact monospace-style block listing 4–6 relevant items. One callout statement with a strong lead word interpreting the pattern. A tight bullet list of 3–5 single-word or short-phrase implications. One standalone punchy sentence as the conclusion.',
+  },
+
 ]

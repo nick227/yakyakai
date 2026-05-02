@@ -2,7 +2,7 @@ export const BLUEPRINTS = [
 
   {
     key: 'fast-massive',
-    prompt: 'One MASSIVE font statement use full screen text, try to fill the entire screen with this single comically large title! 200px+ font size massive wrapping short phrase.',
+    prompt: 'One MASSIVE font statement that fills the container with extra large title! 100px+ font size massive wrapping short phrase.',
   },
 
   {
